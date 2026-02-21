@@ -1,2 +1,17 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
+
+@theme static {
+  /* Override Tailwind's orange with neon orange values */
+  --color-orange-50: #fff8f1;
+  --color-orange-100: #ffefdf;
+  --color-orange-200: #ffdbbb;
+  --color-orange-300: #ffbf8c;
+  --color-orange-400: #ff9b50;
+  --color-orange-500: #ff6a00;
+  --color-orange-600: #ed5100;
+  --color-orange-700: #c43c02;
+  --color-orange-800: #9c2f0a;
+  --color-orange-900: #7d290c;
+  --color-orange-950: #441204;
+}

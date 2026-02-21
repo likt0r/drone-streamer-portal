@@ -6,6 +6,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { WebRTCClient } from '../utils/webrtc.client'
 import { useRouter } from 'vue-router'
+import StreamButton from './StreamButton.vue'
 
 const props = defineProps<{
   streamUrl: string // e.g., http://192.168.4.1:8889/fpv
@@ -181,15 +182,13 @@ onBeforeUnmount(() => {
 
     <!-- Give the user a go back button too -->
     <div v-if="!isStreaming" class="absolute top-4 left-4 z-50">
-      <UButton color="gray" variant="ghost" icon="i-heroicons-arrow-left" @click="goBack">
+      <UButton color="black" variant="ghost" icon="i-heroicons-arrow-left" @click="goBack">
         Back
       </UButton>
     </div>
 
-    <div v-if="!isStreaming" class="flex flex-col items-center gap-4 z-10">
-      <UButton color="orange" variant="solid" size="xl" icon="i-heroicons-play" @click="startVr">
-        Launch Antigravity VR
-      </UButton>
+    <div v-if="!isStreaming" class="flex flex-col items-center gap-6 z-10 w-full max-w-sm px-6">
+      <StreamButton icon="i-heroicons-eye" label="Launch Antigravity VR" @click="startVr" />
       <div class="text-neutral-400 text-sm">Stream URL: {{ props.streamUrl }}</div>
     </div>
 
