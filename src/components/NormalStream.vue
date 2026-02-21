@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
  * Antigravity VR Engine - Vue 3 / TS
- * High Performance Canvas Doubling for WebRTC
+ * High Performance Canvas Rendering for Normal Stream
  */
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 import { WebRTCClient } from '../utils/webrtc.client'
 import { useRouter } from 'vue-router'
 
@@ -11,17 +11,17 @@ const props = defineProps<{
   streamUrl: string // e.g., http://192.168.4.1:8889/fpv
 }>()
 
+const router = useRouter()
+
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const isStreaming = ref(false)
 const errorMsg = ref<string | null>(null)
 
-const router = useRouter()
-
 let webRTCClient: WebRTCClient | null = null
 let renderFrameId: number | null = null
 
-const startVr = async () => {
+const startStream = async () => {
   if (!videoRef.value || !canvasRef.value) return
   errorMsg.value = null
 
@@ -64,7 +64,7 @@ const startVr = async () => {
   await webRTCClient.connect()
 }
 
-const stopVr = () => {
+const stopStream = () => {
   window.removeEventListener('resize', updateCanvasSize)
 
   if (webRTCClient) {
@@ -80,7 +80,7 @@ const stopVr = () => {
 }
 
 const goBack = () => {
-  stopVr()
+  stopStream()
   router.push('/')
 }
 
@@ -100,12 +100,12 @@ const renderLoop = () => {
   const ctx = canvasRef.value.getContext('2d', { alpha: false })
   if (!ctx) return
 
-  const w = canvasRef.value.width / 2
+  const w = canvasRef.value.width
   const h = canvasRef.value.height
 
   // Draw Logic
   ctx.fillStyle = 'black'
-  ctx.fillRect(0, 0, canvasRef.value.width, canvasRef.value.height)
+  ctx.fillRect(0, 0, w, h)
 
   // Check if video is playing and has data
   if (videoRef.value.readyState >= 2) {
@@ -113,8 +113,7 @@ const renderLoop = () => {
     const vh = videoRef.value.videoHeight
 
     if (vw > 0 && vh > 0) {
-      // Use "contain" logic to fit the entire video inside the VR lens (w x h)
-      // This will result in black bars (letterboxing/pillarboxing) if aspect ratios mismatch.
+      // Use "contain" logic to fit the entire video
       const scale = Math.min(w / vw, h / vh)
 
       const drawWidth = vw * scale
@@ -123,31 +122,7 @@ const renderLoop = () => {
       const offsetX = (w - drawWidth) / 2
       const offsetY = (h - drawHeight) / 2
 
-      // Left Eye: draw scaled video centered in the left half
-      ctx.drawImage(
-        videoRef.value,
-        0,
-        0,
-        vw,
-        vh, // Full source video
-        offsetX,
-        offsetY,
-        drawWidth,
-        drawHeight, // Scaled and centered destination
-      )
-
-      // Right Eye: draw scaled video centered in the right half
-      ctx.drawImage(
-        videoRef.value,
-        0,
-        0,
-        vw,
-        vh, // Full source video
-        w + offsetX,
-        offsetY,
-        drawWidth,
-        drawHeight, // Scaled and centered destination (shifted by w)
-      )
+      ctx.drawImage(videoRef.value, 0, 0, vw, vh, offsetX, offsetY, drawWidth, drawHeight)
     }
   }
 
@@ -162,7 +137,7 @@ const stopRenderLoop = () => {
 }
 
 onBeforeUnmount(() => {
-  stopVr()
+  stopStream()
 })
 </script>
 
@@ -187,8 +162,8 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-if="!isStreaming" class="flex flex-col items-center gap-4 z-10">
-      <UButton color="orange" variant="solid" size="xl" icon="i-heroicons-play" @click="startVr">
-        Launch Antigravity VR
+      <UButton color="blue" variant="solid" size="xl" icon="i-heroicons-play" @click="startStream">
+        Launch Normal Stream
       </UButton>
       <div class="text-neutral-400 text-sm">Stream URL: {{ props.streamUrl }}</div>
     </div>
@@ -200,12 +175,13 @@ onBeforeUnmount(() => {
       class="absolute inset-0 w-full h-full cursor-none z-0"
     />
 
+    <!-- Hidden exit button when hovering near top during stream -->
     <div
       v-if="isStreaming"
       class="absolute top-0 w-full h-16 hover:opacity-100 opacity-0 transition-opacity flex justify-center items-start pt-2 z-50"
     >
       <UButton color="gray" variant="solid" icon="i-heroicons-x-mark" @click="goBack">
-        Exit VR
+        Exit Stream
       </UButton>
     </div>
 

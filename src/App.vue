@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import VrStream from './components/VrStream.vue'
-
-const testingStreamUrl = 'http://localhost:8889/fpv'
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
   <UApp>
-    <!-- We inject the VrStream component here on the main page for testing -->
-    <VrStream :stream-url="testingStreamUrl" />
+    <RouterView />
   </UApp>
 </template>
 
