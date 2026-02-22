@@ -5,6 +5,7 @@
     "": {
       "name": "drone-streamer-portal",
       "dependencies": {
+        "@iconify-icons/heroicons": "^1.2.9",
         "@iconify-json/lucide": "^1.2.92",
         "@nuxt/ui": "^4.4.0",
         "tailwindcss": "^4.2.0",
@@ -151,6 +152,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
     "@floating-ui/vue": ["@floating-ui/vue@1.1.10", "", { "dependencies": { "@floating-ui/dom": "^1.7.5", "@floating-ui/utils": "^0.2.10", "vue-demi": ">=0.13.0" } }, "sha512-vdf8f6rHnFPPLRsmL4p12wYl+Ux4mOJOkjzKEMYVnwdf7UFdvBtHlLvQyx8iKG5vhPRbDRgZxdtpmyigDPjzYg=="],
+
+    "@iconify-icons/heroicons": ["@iconify-icons/heroicons@1.2.9", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-bZN3gLVVEQ9pVbvs15Vl2x9xSyOO8ZXRpWHo/qzlJLdB5VqNbw0Jgrmt4B1fLQexik6oKp/aau0eaddju7M7Tg=="],
 
     "@iconify-json/lucide": ["@iconify-json/lucide@1.2.92", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-+ghJelYoO/cfR6Kl/SKRJJZ+lONUUanC7w94Lh8gOZaSK92RBmLE+mojYrcVrLqjLnJO5KkryQxRcg3dLFPZww=="],
 
