@@ -111,19 +111,31 @@ systemctl enable mediamtx
 systemctl restart mediamtx
 info "MediaMTX service enabled and started."
 
-# ── 4. Vue app (dist/) ────────────────────────────────────────────────────────
-DIST_DIR="${PROJECT_DIR}/dist"
+# ── 4. Vue app – download latest release from GitHub ─────────────────────────
+REPO="likt0r/drone-streamer-portal"
 
-if [[ -d "${DIST_DIR}" ]]; then
-    info "Deploying Vue build to ${WEB_ROOT}…"
-    mkdir -p "${WEB_ROOT}"
-    rsync -a --delete "${DIST_DIR}/" "${WEB_ROOT}/"
-    chown -R www-data:www-data "${WEB_ROOT}"
-    info "Vue build deployed."
-else
-    warn "dist/ not found – skipping Vue deployment."
-    warn "Build first with: bun run build  (then re-run this script)"
+info "Resolving latest release from github.com/${REPO}…"
+LATEST_TAG=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\(.*\)".*/\1/')
+
+if [[ -z "${LATEST_TAG}" ]]; then
+    error "Could not resolve latest release tag. Check your internet connection or ensure a release has been published."
 fi
+
+info "Latest release: ${LATEST_TAG}"
+PACKAGE_URL="https://github.com/${REPO}/releases/download/${LATEST_TAG}/drone-streamer-portal-${LATEST_TAG}.tar.gz"
+
+info "Downloading Vue build package…"
+TMP_WEB=$(mktemp -d)
+curl -fsSL "${PACKAGE_URL}" -o "${TMP_WEB}/portal.tar.gz" \
+    || error "Failed to download ${PACKAGE_URL}"
+
+info "Extracting to ${WEB_ROOT}…"
+mkdir -p "${WEB_ROOT}"
+tar -xzf "${TMP_WEB}/portal.tar.gz" -C "${WEB_ROOT}"
+chown -R www-data:www-data "${WEB_ROOT}"
+rm -rf "${TMP_WEB}"
+info "Vue build (${LATEST_TAG}) deployed to ${WEB_ROOT}."
 
 # ── 5. Nginx ──────────────────────────────────────────────────────────────────
 info "Installing nginx site config…"
