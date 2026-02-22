@@ -8,7 +8,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: StreamPage,
-      props: { streamUrl: 'http://localhost:8889/fpv' },
+      props: { streamUrl: `http://${location.host}/fpv` },
     },
   ],
 })

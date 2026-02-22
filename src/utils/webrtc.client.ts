@@ -1,5 +1,5 @@
 /**
- * Antigravity VR Engine - Nuxt / Vue TS Interface
+ * Drone Streamer Portal VR Engine - Nuxt / Vue TS Interface
  * MediaMTX WebRTC Client (WHEP Compatible)
  */
 

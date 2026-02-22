@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Antigravity FPV Portal - Unified Stream Page
+ * Drone Streamer Portal FPV Portal - Unified Stream Page
  * One-click streaming with VR and Normal modes.
  */
 import { ref } from 'vue'
@@ -42,6 +42,10 @@ const launch = async (selectedMode: Mode) => {
   updateCanvasSize()
   window.addEventListener('resize', updateCanvasSize)
 
+  // Push a history entry so the back button fires popstate instead of navigating away
+  history.pushState({ streaming: true }, '')
+  window.addEventListener('popstate', handlePopState)
+
   webRTCClient = new WebRTCClient({
     url: props.streamUrl,
     videoElement: videoRef.value,
@@ -65,8 +69,11 @@ const launch = async (selectedMode: Mode) => {
 }
 
 // ─── Stop ─────────────────────────────────────────────────────────────────────
+const handlePopState = () => stop()
+
 const stop = () => {
   window.removeEventListener('resize', updateCanvasSize)
+  window.removeEventListener('popstate', handlePopState)
   webRTCClient?.disconnect()
   webRTCClient = null
   stopRenderLoop()
@@ -142,11 +149,9 @@ const stopRenderLoop = () => {
     <!-- ── HOME ─────────────────────────────────────────────────────────────── -->
     <template v-if="status === 'idle'">
       <div class="flex flex-col items-center gap-8 px-6 w-full">
-        <h1 class="text-primary-500 text-3xl font-bold tracking-tight">Antigravity FPV Portal</h1>
-
         <div class="flex flex-col landscape:flex-row gap-6">
           <StreamButton
-            icon="i-heroicons-computer-desktop"
+            icon="i-heroicons-device-phone-mobile"
             label="Start Streaming"
             @click="launch('normal')"
           />

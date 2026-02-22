@@ -1,8 +1,8 @@
-# Antigravity FPV - Local Linux Test Setup
+# Drone Streamer Portal FPV - Local Linux Test Setup
 
 ## 1. Prerequisites (Debian/Ubuntu/PiOS)
 
-Before running the Vue frontend, your environment needs the "Antigravity" engine components (MediaMTX and v4l-utils) to simulate or capture a camera feed and stream it via WebRTC.
+Before running the Vue frontend, your environment needs the "Drone Streamer Portal" engine components (MediaMTX and v4l-utils) to simulate or capture a camera feed and stream it via WebRTC.
 
 ```bash
 # debian based
@@ -54,4 +54,4 @@ bun install
 bun run dev
 ```
 
-Navigate to `http://localhost:5173`. Ensure your browser allows auto-play for the local IP. When you click "Launch Antigravity VR", the web app will connect to MediaMTX on `:8889` and render the incoming WebRTC feed onto a dual canvas for VR viewing.
+Navigate to `http://localhost:5173`. Ensure your browser allows auto-play for the local IP. When you click "Launch Drone Streamer Portal VR", the web app will connect to MediaMTX on `:8889` and render the incoming WebRTC feed onto a dual canvas for VR viewing.

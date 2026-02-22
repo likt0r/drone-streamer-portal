@@ -11,8 +11,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    Home: typeof import('./src/components/Home.vue')['default']
-    NormalStream: typeof import('./src/components/NormalStream.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StreamButton: typeof import('./src/components/StreamButton.vue')['default']
@@ -21,6 +19,5 @@ declare module 'vue' {
     UApp: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
     UButton: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
     UIcon: typeof import('./node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']
-    VrStream: typeof import('./src/components/VrStream.vue')['default']
   }
 }
