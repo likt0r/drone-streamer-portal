@@ -1,6 +1,6 @@
 {
   "name": "drone-streamer-portal",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "release": "bash scripts/tag-release.sh"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.92",
