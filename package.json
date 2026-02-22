@@ -1,6 +1,6 @@
 {
   "name": "drone-streamer-portal",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@iconify-icons/heroicons": "^1.2.9",
+    "@iconify-json/heroicons": "^1.2.3",
     "@iconify-json/lucide": "^1.2.92",
     "@nuxt/ui": "^4.4.0",
     "tailwindcss": "^4.2.0",

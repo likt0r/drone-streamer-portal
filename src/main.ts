@@ -1,15 +1,12 @@
 import './assets/main.css'
 
-import { addIcon } from '@iconify/vue'
-import devicePhoneMobile from '@iconify-icons/heroicons/device-phone-mobile'
-import exclamationTriangle from '@iconify-icons/heroicons/exclamation-triangle'
-import eye from '@iconify-icons/heroicons/eye'
-import xMark from '@iconify-icons/heroicons/x-mark'
+import { addCollection } from '@iconify/vue'
+import heroicons from '@iconify-json/heroicons/icons.json'
+//import lucide from '@iconify-json/lucide/icons.json'
 
-addIcon('heroicons-device-phone-mobile', devicePhoneMobile)
-addIcon('heroicons-exclamation-triangle', exclamationTriangle)
-addIcon('heroicons-eye', eye)
-addIcon('heroicons-x-mark', xMark)
+// Register full collections for offline use
+addCollection(heroicons)
+//addCollection(lucide)
 
 import { createApp } from 'vue'
 import App from './App.vue'
