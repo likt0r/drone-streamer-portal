@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # triggers on version tags like v1.0.0, v2.3.1, etc.
+
+permissions:
+  contents: write # needed to create GitHub Releases
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Vue app
+        run: bun run build-only
+
+      - name: Package build artefact
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          ARCHIVE="drone-streamer-portal-${VERSION}.tar.gz"
+          tar -czf "${ARCHIVE}" -C dist .
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 'Release ${{ env.VERSION }}'
+          body: |
+            ## drone-streamer-portal ${{ env.VERSION }}
+
+            ### Installation on Raspberry Pi
+
+            ```bash
+            git clone https://github.com/likt0r/drone-streamer-portal.git
+            cd drone-streamer-portal
+            git checkout ${{ env.VERSION }}
+            sudo bash scripts/install-pi.sh
+            ```
+
+            Or download the pre-built package below and extract to `/var/www/drone-streamer-portal/`.
+          files: ${{ env.ARCHIVE }}
+          fail_on_unmatched_files: true
