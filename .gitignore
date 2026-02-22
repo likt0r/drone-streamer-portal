@@ -39,5 +39,5 @@ __screenshots__/
 *.timestamp-*-*.mjs
 
 # MediaMTX – only the config is tracked; ignore any locally placed binary
-mediamtx_v1.16.1/mediamtx
-mediamtx_v1.16.1/LICENSE
+mediamtx/mediamtx
+mediamtx/LICENSE

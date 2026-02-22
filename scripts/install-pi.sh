@@ -77,7 +77,7 @@ install -m 755 "${TMP}/mediamtx" /usr/local/bin/mediamtx
 
 # Copy config — overwrite only if it doesn't exist yet, or --force is set
 if [[ ! -f "${INSTALL_DIR}/mediamtx.yml" ]] || [[ "${FORCE}" == true ]]; then
-    install -m 644 "${PROJECT_DIR}/mediamtx_v1.16.1/mediamtx.yml" "${INSTALL_DIR}/mediamtx.yml"
+    install -m 644 "${PROJECT_DIR}/mediamtx/mediamtx.yml" "${INSTALL_DIR}/mediamtx.yml"
     info "Installed mediamtx.yml to ${INSTALL_DIR}/mediamtx.yml"
 else
     warn "mediamtx.yml already exists – skipping (use --force to overwrite)"
