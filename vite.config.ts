@@ -18,6 +18,9 @@ export default defineConfig({
     }),
     vueDevTools(),
   ],
+  server: {
+    host: true, // bind to 0.0.0.0 so Docker/nginx can reach it
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
