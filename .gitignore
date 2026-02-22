@@ -37,3 +37,6 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# MediaMTX binary (only track the config, not the binary)
+mediamtx_v1.16.1/mediamtx
