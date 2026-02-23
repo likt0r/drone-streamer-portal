@@ -14,11 +14,12 @@
 #   sudo bash scripts/install-pi.sh --force
 #
 # What this does:
-#   1. Installs system packages (nginx, ffmpeg, v4l-utils)
+#   1. Installs system packages (nginx, ffmpeg, v4l-utils, python3-venv)
 #   2. Downloads & installs MediaMTX v1.16.1 (linux_arm64)
-#   3. Installs the Vue build from ../dist into /var/www/drone-streamer-portal
-#   4. Copies nginx prod config and enables the site
-#   5. Creates a systemd service for MediaMTX and enables it
+#   3. Creates a systemd service for MediaMTX and enables it
+#   4. Downloads the latest Vue build from GitHub and deploys it
+#   5. Copies nginx prod config and enables the site
+#   6. Installs the FastAPI backend and creates a systemd service for it
 # =============================================================================
 
 set -euo pipefail
@@ -56,14 +57,17 @@ NGINX_SITE="/etc/nginx/sites-available/drone-streamer-portal"
 info "Updating package lists…"
 apt-get update -qq
 
-info "Installing nginx, ffmpeg, v4l-utils…"
+info "Installing nginx, ffmpeg, v4l-utils, python3…"
 apt-get install -y --no-install-recommends \
     nginx \
     ffmpeg \
     v4l-utils \
     curl \
     wget \
-    tar
+    tar \
+    python3 \
+    python3-pip \
+    python3-venv
 
 # ── 2. MediaMTX ───────────────────────────────────────────────────────────────
 info "Downloading MediaMTX ${MEDIAMTX_VERSION} (arm64)…"
@@ -150,6 +154,43 @@ systemctl enable nginx
 systemctl reload nginx
 info "Nginx configured and reloaded."
 
+# ── 6. FastAPI backend ────────────────────────────────────────────────────────
+BACKEND_INSTALL_DIR="/opt/drone-streamer-backend"
+
+info "Installing FastAPI backend to ${BACKEND_INSTALL_DIR}…"
+mkdir -p "${BACKEND_INSTALL_DIR}"
+cp -r "${PROJECT_DIR}/backend/"* "${BACKEND_INSTALL_DIR}/"
+
+info "Creating Python virtual environment…"
+python3 -m venv "${BACKEND_INSTALL_DIR}/venv"
+
+info "Installing Python dependencies…"
+"${BACKEND_INSTALL_DIR}/venv/bin/pip" install --upgrade pip -q
+"${BACKEND_INSTALL_DIR}/venv/bin/pip" install -r "${BACKEND_INSTALL_DIR}/requirements.txt" -q
+
+info "Creating drone-stats systemd service…"
+cat > /etc/systemd/system/drone-stats.service << EOF
+[Unit]
+Description=Drone Streamer FastAPI Hardware Stats backend
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=${BACKEND_INSTALL_DIR}
+Environment="PATH=${BACKEND_INSTALL_DIR}/venv/bin"
+ExecStart=${BACKEND_INSTALL_DIR}/venv/bin/uvicorn main:app --host 0.0.0.0 --port 5002
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable drone-stats
+systemctl restart drone-stats
+info "drone-stats backend service enabled and started."
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 info "✅ Installation complete!"
@@ -157,9 +198,11 @@ echo ""
 echo "  MediaMTX config : ${INSTALL_DIR}/mediamtx.yml"
 echo "  Web root        : ${WEB_ROOT}"
 echo "  Nginx site      : ${NGINX_SITE}"
+echo "  Backend         : ${BACKEND_INSTALL_DIR}"
 echo ""
 echo "  Service status:"
 echo "    sudo systemctl status mediamtx"
 echo "    sudo systemctl status nginx"
+echo "    sudo systemctl status drone-stats"
 echo ""
 echo "  Access the portal at: http://$(hostname -I | awk '{print $1}')/"
