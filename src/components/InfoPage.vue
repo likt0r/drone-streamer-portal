@@ -214,52 +214,60 @@ onUnmounted(() => {
         </UButton>
       </div>
 
-      <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-6 mt-[-10px]">
+      <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-4 mb-6 mt-[-10px]">
         <UBadge
           color="error"
           variant="soft"
-          size="lg"
+          size="md"
           icon="i-heroicons-fire"
           :ui="{ rounded: 'rounded-full' }"
         >
           <span class="font-normal text-gray-400 mr-1 hidden sm:inline">CPU:</span>
-          <span class="font-bold text-white">{{ currentCpuTemp }}</span
+          <span class="font-bold text-white inline-block w-[3ch] text-right">{{
+            currentCpuTemp
+          }}</span
           ><span class="font-normal opacity-75 ml-0.5 text-gray-400">°C</span>
         </UBadge>
 
         <UBadge
           color="info"
           variant="soft"
-          size="lg"
+          size="md"
           icon="i-heroicons-fire"
           :ui="{ rounded: 'rounded-full' }"
         >
           <span class="font-normal text-gray-400 mr-1 hidden sm:inline">GPU:</span>
-          <span class="font-bold text-white">{{ currentGpuTemp }}</span
+          <span class="font-bold text-white inline-block w-[3ch] text-right">{{
+            currentGpuTemp
+          }}</span
           ><span class="font-normal opacity-75 ml-0.5 text-gray-400">°C</span>
         </UBadge>
 
         <UBadge
           color="success"
           variant="soft"
-          size="lg"
+          size="md"
           icon="i-heroicons-cpu-chip"
           :ui="{ rounded: 'rounded-full' }"
         >
           <span class="font-normal text-gray-400 mr-1 hidden sm:inline">CPU Load:</span>
-          <span class="font-bold text-white">{{ currentCpuLoad }}</span
+          <span class="font-bold text-white inline-block w-[3ch] text-right">{{
+            currentCpuLoad
+          }}</span
           ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
         </UBadge>
 
         <UBadge
           color="primary"
           variant="soft"
-          size="lg"
+          size="md"
           icon="i-heroicons-cpu-chip"
           :ui="{ rounded: 'rounded-full' }"
         >
           <span class="font-normal text-gray-400 mr-1 hidden sm:inline">GPU Load:</span>
-          <span class="font-bold text-white">{{ currentGpuLoad }}</span
+          <span class="font-bold text-white inline-block w-[3ch] text-right">{{
+            currentGpuLoad
+          }}</span
           ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
         </UBadge>
       </div>
@@ -293,7 +301,10 @@ onUnmounted(() => {
               :options="
                 {
                   ...chartOptions,
-                  scales: { x: chartOptions.scales.x, y: { min: 0, max: 100 } },
+                  scales: {
+                    x: chartOptions.scales.x,
+                    y: { ...chartOptions.scales.y, min: 0, max: 100 },
+                  },
                 } as any
               "
             />
