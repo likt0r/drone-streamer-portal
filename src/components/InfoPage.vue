@@ -202,43 +202,42 @@ onUnmounted(() => {
         </UButton>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <!-- Live Cards -->
-        <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
-          <template #header>
-            <div class="flex justify-between items-center text-red-500">
-              <span class="font-medium text-sm">CPU Temp</span>
-              <UIcon name="i-heroicons-fire" class="w-5 h-5" />
-            </div>
-          </template>
-          <div class="text-3xl font-bold text-white">
-            {{ currentCpuTemp }} <span class="text-lg text-gray-500 font-normal">°C</span>
-          </div>
-        </UCard>
+      <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-6 mt-[-10px]">
+        <UBadge
+          color="error"
+          variant="soft"
+          size="lg"
+          icon="i-heroicons-fire"
+          :ui="{ rounded: 'rounded-full' }"
+        >
+          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">CPU:</span>
+          <span class="font-bold text-white">{{ currentCpuTemp }}</span
+          ><span class="font-normal opacity-75 ml-0.5 text-gray-400">°C</span>
+        </UBadge>
 
-        <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
-          <template #header>
-            <div class="flex justify-between items-center text-blue-500">
-              <span class="font-medium text-sm">GPU Temp</span>
-              <UIcon name="i-heroicons-fire" class="w-5 h-5" />
-            </div>
-          </template>
-          <div class="text-3xl font-bold text-white">
-            {{ currentGpuTemp }} <span class="text-lg text-gray-500 font-normal">°C</span>
-          </div>
-        </UCard>
+        <UBadge
+          color="info"
+          variant="soft"
+          size="lg"
+          icon="i-heroicons-fire"
+          :ui="{ rounded: 'rounded-full' }"
+        >
+          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">GPU:</span>
+          <span class="font-bold text-white">{{ currentGpuTemp }}</span
+          ><span class="font-normal opacity-75 ml-0.5 text-gray-400">°C</span>
+        </UBadge>
 
-        <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
-          <template #header>
-            <div class="flex justify-between items-center text-green-500">
-              <span class="font-medium text-sm">CPU Load</span>
-              <UIcon name="i-heroicons-cpu-chip" class="w-5 h-5" />
-            </div>
-          </template>
-          <div class="text-3xl font-bold text-white">
-            {{ currentCpuLoad }} <span class="text-lg text-gray-500 font-normal">%</span>
-          </div>
-        </UCard>
+        <UBadge
+          color="success"
+          variant="soft"
+          size="lg"
+          icon="i-heroicons-cpu-chip"
+          :ui="{ rounded: 'rounded-full' }"
+        >
+          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">Load:</span>
+          <span class="font-bold text-white">{{ currentCpuLoad }}</span
+          ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
+        </UBadge>
       </div>
 
       <!-- Charts -->
