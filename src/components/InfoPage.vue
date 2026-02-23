@@ -30,12 +30,14 @@ interface StatResponse {
   cpu_temp: number
   gpu_temp: number
   cpu_load: number
+  gpu_load: number
 }
 
 // Current live values to display prominently
 const currentCpuTemp = ref<number>(0)
 const currentGpuTemp = ref<number>(0)
 const currentCpuLoad = ref<number>(0)
+const currentGpuLoad = ref<number>(0)
 
 const historyData = ref<StatResponse[]>([])
 const ws = ref<WebSocket | null>(null)
@@ -94,7 +96,7 @@ const getTemperatureChartData = () => {
   return {
     datasets: [
       {
-        label: 'CPU Temp (°C)',
+        label: 'CPU (°C)',
         backgroundColor: '#ef4444',
         borderColor: '#ef4444',
         data: historyData.value.map((s) => ({ x: s.timestamp, y: s.cpu_temp })),
@@ -103,7 +105,7 @@ const getTemperatureChartData = () => {
         tension: 0.1,
       },
       {
-        label: 'GPU Temp (°C)',
+        label: 'GPU (°C)',
         backgroundColor: '#3b82f6',
         borderColor: '#3b82f6',
         data: historyData.value.map((s) => ({ x: s.timestamp, y: s.gpu_temp })),
@@ -119,14 +121,22 @@ const getLoadChartData = () => {
   return {
     datasets: [
       {
-        label: 'CPU Load (%)',
+        label: 'CPU (%)',
         backgroundColor: '#10b981',
         borderColor: '#10b981',
-        data: historyData.value.map((s) => ({ x: s.timestamp, y: s.cpu_load })),
+        data: historyData.value.map((s) => ({ x: s.timestamp, y: s.cpu })),
         pointRadius: 0,
         borderWidth: 2,
         tension: 0.1,
-        fill: true,
+      },
+      {
+        label: 'GPU (%)',
+        backgroundColor: '#a855f7',
+        borderColor: '#a855f7',
+        data: historyData.value.map((s) => ({ x: s.timestamp, y: s.gpu_load })),
+        pointRadius: 0,
+        borderWidth: 2,
+        tension: 0.1,
       },
     ],
   }
@@ -146,6 +156,7 @@ const fetchHistory = async () => {
       currentCpuTemp.value = Math.round(last.cpu_temp)
       currentGpuTemp.value = Math.round(last.gpu_temp)
       currentCpuLoad.value = Math.round(last.cpu_load)
+      currentGpuLoad.value = Math.round(last.gpu_load)
     }
   } catch (err) {
     console.error('Failed to fetch history:', err)
@@ -163,6 +174,7 @@ const connectWebSocket = () => {
     currentCpuTemp.value = Math.round(data.cpu_temp)
     currentGpuTemp.value = Math.round(data.gpu_temp)
     currentCpuLoad.value = Math.round(data.cpu_load)
+    currentGpuLoad.value = Math.round(data.gpu_load)
 
     // Append to array and manage 30 minute array strictly if frontend misses cleanup
     historyData.value.push(data)
@@ -234,8 +246,20 @@ onUnmounted(() => {
           icon="i-heroicons-cpu-chip"
           :ui="{ rounded: 'rounded-full' }"
         >
-          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">Load:</span>
+          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">CPU Load:</span>
           <span class="font-bold text-white">{{ currentCpuLoad }}</span
+          ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
+        </UBadge>
+
+        <UBadge
+          color="primary"
+          variant="soft"
+          size="lg"
+          icon="i-heroicons-cpu-chip"
+          :ui="{ rounded: 'rounded-full' }"
+        >
+          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">GPU Load:</span>
+          <span class="font-bold text-white">{{ currentGpuLoad }}</span
           ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
         </UBadge>
       </div>
@@ -260,7 +284,7 @@ onUnmounted(() => {
 
         <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
           <template #header>
-            <h3 class="font-semibold text-white">CPU Load History</h3>
+            <h3 class="font-semibold text-white">System Load History</h3>
           </template>
           <div class="h-[300px]">
             <Line

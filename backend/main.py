@@ -59,6 +59,16 @@ def get_gpu_temp() -> float | None:
         # Fallback for local testing
         return 50.0 + (psutil.cpu_percent() * 0.15)
 
+def get_gpu_load() -> float:
+    try:
+        # Some Pi models/kernels expose it here:
+        with open("/sys/devices/gpu.0/load", "r") as f:
+            load = float(f.read().strip())
+        return round(load, 1)
+    except Exception:
+        # Fallback simulated GPU load for local testing/missing permissions
+        return min(100.0, max(0.0, psutil.cpu_percent() * 0.8 + 5.0))
+
 def get_cpu_load() -> float:
     return psutil.cpu_percent()
 
@@ -71,6 +81,7 @@ async def collect_stats():
             "cpu_temp": get_cpu_temp(),
             "gpu_temp": get_gpu_temp(),
             "cpu_load": get_cpu_load(),
+            "gpu_load": get_gpu_load(),
         }
         history.append(data)
         await manager.broadcast(data)
@@ -88,6 +99,7 @@ async def startup_event():
             "cpu_temp": 0,
             "gpu_temp": 0,
             "cpu_load": 0,
+            "gpu_load": 0,
         })
     
     # Warmup psutil logic (first call returns 0.0)
