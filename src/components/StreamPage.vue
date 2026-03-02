@@ -222,13 +222,13 @@ const stopRenderLoop = () => {
     <canvas
       v-show="status === 'streaming'"
       ref="canvasRef"
-      class="absolute inset-0 w-full h-full cursor-none z-0"
+      class="absolute inset-0 w-full h-full z-0"
     />
 
-    <!-- Hover-to-reveal exit bar -->
+    <!-- Always visible exit bar -->
     <div
       v-if="status === 'streaming'"
-      class="absolute top-0 w-full h-16 opacity-0 hover:opacity-100 transition-opacity flex justify-center items-start pt-2 z-50 gap-4"
+      class="absolute top-0 w-full h-16 flex justify-center items-start pt-2 z-50 gap-4"
     >
       <UButton color="neutral" variant="solid" icon="i-heroicons-x-mark" @click="stop">
         Exit Stream
