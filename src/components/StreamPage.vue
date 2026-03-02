@@ -3,7 +3,7 @@
  * Drone Streamer Portal FPV Portal - Unified Stream Page
  * One-click streaming with VR and Normal modes.
  */
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { WebRTCClient } from '../utils/webrtc.client'
 import StreamButton from './StreamButton.vue'
 
@@ -18,12 +18,33 @@ type Status = 'idle' | 'connecting' | 'streaming' | 'error'
 const status = ref<Status>('idle')
 const mode = ref<Mode>('normal')
 const errorMsg = ref<string | null>(null)
+const isFullscreen = ref(false)
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 let webRTCClient: WebRTCClient | null = null
 let renderFrameId: number | null = null
+
+const handleFullscreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement
+}
+
+onMounted(() => {
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
+})
+
+const requestFullscreen = async () => {
+  if (document.documentElement.requestFullscreen) {
+    try {
+      await document.documentElement.requestFullscreen()
+    } catch (_) {}
+  }
+}
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 const launch = async (selectedMode: Mode) => {
@@ -33,11 +54,7 @@ const launch = async (selectedMode: Mode) => {
   status.value = 'connecting'
   errorMsg.value = null
 
-  if (document.documentElement.requestFullscreen) {
-    try {
-      await document.documentElement.requestFullscreen()
-    } catch (_) {}
-  }
+  await requestFullscreen()
 
   updateCanvasSize()
   window.addEventListener('resize', updateCanvasSize)
@@ -211,10 +228,19 @@ const stopRenderLoop = () => {
     <!-- Hover-to-reveal exit bar -->
     <div
       v-if="status === 'streaming'"
-      class="absolute top-0 w-full h-16 opacity-0 hover:opacity-100 transition-opacity flex justify-center items-start pt-2 z-50"
+      class="absolute top-0 w-full h-16 opacity-0 hover:opacity-100 transition-opacity flex justify-center items-start pt-2 z-50 gap-4"
     >
       <UButton color="neutral" variant="solid" icon="i-heroicons-x-mark" @click="stop">
         Exit Stream
+      </UButton>
+      <UButton
+        v-if="!isFullscreen"
+        color="neutral"
+        variant="solid"
+        icon="i-heroicons-arrows-pointing-out"
+        @click="requestFullscreen"
+      >
+        Fullscreen
       </UButton>
     </div>
 
