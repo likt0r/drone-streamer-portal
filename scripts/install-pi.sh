@@ -46,7 +46,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 INSTALL_DIR="/opt/mediamtx"
-WEB_ROOT="/var/www/drone-streamer-portal"
+WEB_ROOT="/var/www/drone-streamer-portal/dist"
 NGINX_SITE="/etc/nginx/sites-available/drone-streamer-portal"
 
 

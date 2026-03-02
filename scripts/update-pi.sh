@@ -18,7 +18,7 @@ info()  { echo -e "\e[32m[INFO]\e[0m  $*"; }
 warn()  { echo -e "\e[33m[WARN]\e[0m  $*"; }
 error() { echo -e "\e[31m[ERROR]\e[0m $*" >&2; exit 1; }
 
-WEB_ROOT="/var/www/drone-streamer-portal"
+WEB_ROOT="/var/www/drone-streamer-portal/dist"
 
 [[ $EUID -ne 0 ]] && error "Please run as root: sudo bash $0"
 
