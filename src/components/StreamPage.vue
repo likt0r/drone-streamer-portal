@@ -195,12 +195,15 @@ const stopRenderLoop = () => {
         <p class="text-primary-500 text-lg font-semibold tracking-widest uppercase animate-pulse">
           Connecting…
         </p>
-        <button
-          class="text-neutral-500 text-sm hover:text-neutral-300 transition-colors"
+        <UButton
+          class="cursor-pointer"
+          color="neutral"
+          variant="solid"
+          icon="i-heroicons-x-mark"
           @click="stop"
         >
           Cancel
-        </button>
+        </UButton>
       </div>
     </template>
 
@@ -230,10 +233,17 @@ const stopRenderLoop = () => {
       v-if="status === 'streaming'"
       class="absolute top-0 w-full h-16 flex justify-center items-start pt-2 z-50 gap-4"
     >
-      <UButton color="neutral" variant="solid" icon="i-heroicons-x-mark" @click="stop">
+      <UButton
+        class="cursor-pointer"
+        color="neutral"
+        variant="solid"
+        icon="i-heroicons-x-mark"
+        @click="stop"
+      >
         Exit Stream
       </UButton>
       <UButton
+        class="cursor-pointer"
         v-if="!isFullscreen"
         color="neutral"
         variant="solid"
