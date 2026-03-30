@@ -120,3 +120,117 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+from pydantic import BaseModel
+import json
+import os
+import re
+
+SETTINGS_FILE = "stream_settings.json"
+
+class StreamSettings(BaseModel):
+    device: str
+    width: int
+    height: int
+    fps: int
+    bitrate: str
+    maxrate: str
+    bufsize: str
+    g: str
+    tune: str
+    bf: str
+    pix_fmt: str
+    f: str
+
+def get_default_settings() -> StreamSettings:
+    return StreamSettings(
+        device="/dev/video0",
+        width=1280,
+        height=720,
+        fps=30,
+        bitrate="8000k",
+        maxrate="10000k",
+        bufsize="8000k",
+        g="15",
+        tune="zerolatency",
+        bf="0",
+        pix_fmt="yuv420p",
+        f="rtsp"
+    )
+
+@app.get("/api/stream-settings", response_model=StreamSettings)
+async def get_stream_settings():
+    if not os.path.exists(SETTINGS_FILE):
+        return get_default_settings()
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            data = json.load(f)
+            return StreamSettings(**data)
+    except Exception:
+        return get_default_settings()
+
+@app.post("/api/stream-settings")
+async def save_stream_settings(settings: StreamSettings):
+    # Save to JSON
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings.model_dump(), f, indent=2)
+    
+    # Rebuild mediamtx.yml
+    # Typically production uses /opt/mediamtx/mediamtx.yml
+    # Dev uses ../mediamtx/mediamtx.yml
+    yaml_paths = [
+        "/opt/mediamtx/mediamtx.yml",
+        "../mediamtx/mediamtx.yml"
+    ]
+    
+    target_yaml = None
+    for path in yaml_paths:
+        if os.path.exists(path):
+            target_yaml = path
+            break
+            
+    if target_yaml:
+        try:
+            with open(target_yaml, "r") as f:
+                content = f.read()
+                
+            # ffmpeg command template
+            new_cmd = (
+                f"ffmpeg -f v4l2 -input_format mjpeg -framerate {settings.fps} "
+                f"-video_size {settings.width}x{settings.height} -i {settings.device} "
+                f"-c:v h264_v4l2m2m -b:v {settings.bitrate} -maxrate {settings.maxrate} -bufsize {settings.bufsize} "
+                f"-g {settings.g} -tune {settings.tune} -bf {settings.bf} -pix_fmt {settings.pix_fmt} -f {settings.f} rtsp://localhost:$RTSP_PORT/$RTSP_PATH"
+            )
+            
+            # Use regex to find and replace the runOnInit line under fpv:
+            # We look for something like:
+            # fpv:
+            #   source: publisher
+            #   runOnInit: ffmpeg ...
+            pattern = r"(fpv:\s+source:\s+publisher\s+runOnInit:\s+).*?(?=\n\s*runOnInitRestart:)"
+            replacement = r"\g<1>" + new_cmd
+            
+            updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+            
+            # If the regex didn't match (maybe formatting is different), let's try a simpler line replacement
+            if updated_content == content:
+                # Just replace the runOnInit line starting with ffmpeg
+                line_pattern = r"(runOnInit:\s+ffmpeg\s+).*?(?=\n)"
+                line_replacement = r"runOnInit: " + new_cmd
+                updated_content = re.sub(line_pattern, line_replacement, content)
+                
+            with open(target_yaml, "w") as f:
+                f.write(updated_content)
+                
+            # Restart mediamtx
+            try:
+                subprocess.run(["sudo", "systemctl", "restart", "mediamtx"], check=True)
+            except Exception as e:
+                # Might fail in dev without sudo
+                print(f"Failed to restart mediamtx (expected in dev): {e}")
+                
+        except Exception as e:
+            print(f"Error updating config: {e}")
+            return {"status": "error", "message": str(e)}
+
+    return {"status": "success"}

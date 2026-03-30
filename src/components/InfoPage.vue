@@ -209,9 +209,14 @@ onUnmounted(() => {
           <h1 class="text-2xl font-bold text-white">Hardware Monitoring</h1>
           <p class="text-gray-400">Live 30-minute system metrics</p>
         </div>
-        <UButton to="/" icon="i-heroicons-arrow-left" color="primary" variant="ghost">
-          Back to Stream
-        </UButton>
+        <div class="flex gap-2">
+          <UButton to="/settings" icon="i-heroicons-cog-8-tooth" color="gray" variant="ghost">
+            Stream Settings
+          </UButton>
+          <UButton to="/" icon="i-heroicons-arrow-left" color="primary" variant="ghost">
+            Back to Stream
+          </UButton>
+        </div>
       </div>
 
       <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-4 mb-6 mt-[-10px]">

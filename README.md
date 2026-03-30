@@ -55,3 +55,30 @@ bun run dev
 ```
 
 Navigate to `http://localhost:5173`. Ensure your browser allows auto-play for the local IP. When you click "Launch Drone Streamer Portal VR", the web app will connect to MediaMTX on `:8889` and render the incoming WebRTC feed onto a dual canvas for VR viewing.
+
+## 5. Backend API Development
+
+For the new Stream Settings or Hardware monitoring features, you'll need the Python FastAPI backend running locally alongside the frontend.
+
+1. Ensure Python 3 and pip are installed on your machine.
+2. Initialize and activate a virtual environment in the `backend/` directory:
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+```
+
+3. Install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Start the backend DEV server on port 5002 using uvicorn:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 5002 --reload
+```
+
+The FastAPI backend logic (like the websocket history streaming and `/api/stream-settings` endpoints) will now be available for the Vue frontend locally!

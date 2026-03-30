@@ -16,6 +16,11 @@ const router = createRouter({
       name: 'info',
       component: InfoPage,
     },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('../components/StreamSettingsPage.vue'),
+    },
   ],
 })
 

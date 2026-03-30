@@ -16,6 +16,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     StreamButton: typeof import('./src/components/StreamButton.vue')['default']
     StreamPage: typeof import('./src/components/StreamPage.vue')['default']
+    StreamSettingsPage: typeof import('./src/components/StreamSettingsPage.vue')['default']
     UAlert: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Alert.vue')['default']
     UApp: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
     UBadge: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Badge.vue')['default']
