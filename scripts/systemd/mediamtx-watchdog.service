@@ -1,0 +1,8 @@
+[Unit]
+Description=MediaMTX FPV stream watchdog (restart mediamtx if the fpv stream is dead)
+After=mediamtx.service
+Wants=mediamtx.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/mediamtx-watchdog.sh

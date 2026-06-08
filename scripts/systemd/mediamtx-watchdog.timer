@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the MediaMTX FPV watchdog periodically
+
+[Timer]
+# First check 60s after boot (USB + mediamtx + ffmpeg have time to come up), then
+# every 30s. The watchdog's 3-strike threshold (~90s) prevents a false restart
+# during the legitimate startup window.
+OnBootSec=60s
+OnUnitActiveSec=30s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

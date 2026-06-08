@@ -17,6 +17,7 @@
 #   1. Installs system packages (nginx, ffmpeg, v4l-utils, python3-venv)
 #   2. Downloads & installs MediaMTX v1.16.1 (linux_arm64)
 #   3. Creates a systemd service for MediaMTX and enables it
+#   3b. Installs the MediaMTX watchdog (auto-restart on dead fpv stream)
 #   4. Downloads the latest Vue build from GitHub and deploys it
 #   5. Copies nginx prod config and enables the site
 #   6. Installs the FastAPI backend and creates a systemd service for it
@@ -87,6 +88,12 @@ else
     warn "mediamtx.yml already exists – skipping (use --force to overwrite)"
 fi
 
+# Install the FPV capture guard. The fpv path's runOnInit calls this wrapper, so
+# it must exist before MediaMTX starts. It waits for /dev/video0 (USB capture
+# adapter) to appear before launching ffmpeg, fixing the boot-time race.
+info "Installing wait-for-video.sh capture guard…"
+install -m 755 "${PROJECT_DIR}/mediamtx/wait-for-video.sh" "${INSTALL_DIR}/wait-for-video.sh"
+
 rm -rf "${TMP}"
 
 # ── 3. MediaMTX systemd service ───────────────────────────────────────────────
@@ -94,7 +101,9 @@ info "Creating mediamtx systemd service…"
 cat > /etc/systemd/system/mediamtx.service << EOF
 [Unit]
 Description=MediaMTX streaming server
-After=network.target
+# Wait for full network (eth0 IP) so WebRTC ICE candidates include the LAN address.
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 WorkingDirectory=${INSTALL_DIR}
@@ -114,6 +123,18 @@ systemctl daemon-reload
 systemctl enable mediamtx
 systemctl restart mediamtx
 info "MediaMTX service enabled and started."
+
+# ── 3b. MediaMTX watchdog (auto-restart on dead fpv stream) ───────────────────
+# Periodically probes the fpv stream; if it is dead while the capture device is
+# present, it restarts mediamtx (the manual fix, automated). See
+# scripts/mediamtx-watchdog.sh.
+info "Installing mediamtx watchdog…"
+install -m 755 "${PROJECT_DIR}/scripts/mediamtx-watchdog.sh" /usr/local/bin/mediamtx-watchdog.sh
+install -m 644 "${PROJECT_DIR}/scripts/systemd/mediamtx-watchdog.service" /etc/systemd/system/mediamtx-watchdog.service
+install -m 644 "${PROJECT_DIR}/scripts/systemd/mediamtx-watchdog.timer"   /etc/systemd/system/mediamtx-watchdog.timer
+systemctl daemon-reload
+systemctl enable --now mediamtx-watchdog.timer
+info "MediaMTX watchdog timer enabled and started."
 
 # ── 4. Vue app – download latest release from GitHub ─────────────────────────
 REPO="likt0r/drone-streamer-portal"
@@ -202,6 +223,7 @@ echo "  Backend         : ${BACKEND_INSTALL_DIR}"
 echo ""
 echo "  Service status:"
 echo "    sudo systemctl status mediamtx"
+echo "    sudo systemctl status mediamtx-watchdog.timer"
 echo "    sudo systemctl status nginx"
 echo "    sudo systemctl status drone-stats"
 echo ""
