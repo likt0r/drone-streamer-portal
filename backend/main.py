@@ -153,6 +153,7 @@ class StreamSettings(BaseModel):
     bf: str
     pix_fmt: str
     f: str
+    rtsp_transport: str = "tcp"
 
 def get_default_settings() -> StreamSettings:
     return StreamSettings(
@@ -167,7 +168,8 @@ def get_default_settings() -> StreamSettings:
         tune="",
         bf="0",
         pix_fmt="yuv420p",
-        f="rtsp"
+        f="rtsp",
+        rtsp_transport="tcp",
     )
 
 def _target_yaml() -> str | None:
@@ -224,6 +226,7 @@ def parse_settings_from_yaml() -> StreamSettings | None:
             bf=first("-bf", "0"),
             pix_fmt=first("-pix_fmt", "yuv420p"),
             f=out_f,
+            rtsp_transport=first("-rtsp_transport", "tcp"),
         )
     except Exception:
         return None
@@ -235,12 +238,13 @@ def build_runoninit(settings: StreamSettings) -> str:
     emitted when set (h264_v4l2m2m ignores it, but we honour an explicit value).
     """
     tune_part = f"-tune {settings.tune} " if settings.tune else ""
+    transport = settings.rtsp_transport if settings.rtsp_transport in ("tcp", "udp") else "tcp"
     ffmpeg_cmd = (
         f"ffmpeg -f v4l2 -input_format mjpeg -framerate {settings.fps} "
         f"-video_size {settings.width}x{settings.height} -i {settings.device} "
         f"-c:v h264_v4l2m2m -b:v {settings.bitrate} -maxrate {settings.maxrate} -bufsize {settings.bufsize} "
         f"-g {settings.g} {tune_part}-bf {settings.bf} -pix_fmt {settings.pix_fmt} "
-        f"-rtsp_transport tcp -f {settings.f} rtsp://localhost:$RTSP_PORT/$RTSP_PATH"
+        f"-rtsp_transport {transport} -f {settings.f} rtsp://localhost:$RTSP_PORT/$RTSP_PATH"
     )
     return WAIT_FOR_VIDEO_WRAPPER + ffmpeg_cmd
 
@@ -254,23 +258,19 @@ def _v4l2_ctl_bin() -> str:
     return "v4l2-ctl"
 
 
-@app.get("/api/video-devices")
-async def get_video_devices(device: str = "/dev/video0"):
-    """Return the capture formats / resolutions / framerates a V4L2 device offers.
-
-    The frontend uses this so resolution & fps can only be set to values the
-    device actually supports.
-    """
+def _parse_v4l2_formats(device: str):
+    """Parse `v4l2-ctl --list-formats-ext` for one device into
+    [{pixelformat, resolutions:[{width,height,framerates:[..]}]}]. Returns
+    (formats, error)."""
     try:
         res = subprocess.run(
             [_v4l2_ctl_bin(), "-d", device, "--list-formats-ext"],
             capture_output=True, text=True, timeout=10,
         )
     except Exception as e:
-        return {"device": device, "formats": [], "error": str(e)}
-
+        return [], str(e)
     if res.returncode != 0:
-        return {"device": device, "formats": [], "error": res.stderr.strip() or "v4l2-ctl failed"}
+        return [], (res.stderr.strip() or "v4l2-ctl failed")
 
     formats: list = []
     cur_fmt = None
@@ -293,8 +293,56 @@ async def get_video_devices(device: str = "/dev/video0"):
             fps = round(float(m.group(1)))
             if fps not in cur_res["framerates"]:
                 cur_res["framerates"].append(fps)
+    return formats, None
 
+
+def _list_video_nodes() -> list:
+    try:
+        nodes = [f"/dev/{n}" for n in os.listdir("/dev") if re.fullmatch(r"video\d+", n)]
+    except Exception:
+        return []
+    return sorted(nodes, key=lambda p: int(re.sub(r"\D", "", p) or 0))
+
+
+def _device_card_name(device: str) -> str:
+    try:
+        res = subprocess.run(
+            [_v4l2_ctl_bin(), "-d", device, "--info"],
+            capture_output=True, text=True, timeout=5,
+        )
+    except Exception:
+        return ""
+    m = re.search(r"Card type\s*:\s*(.+)", res.stdout)
+    return m.group(1).strip() if m else ""
+
+
+@app.get("/api/video-devices")
+async def get_video_devices(device: str = "/dev/video0"):
+    """Return the capture formats / resolutions / framerates a V4L2 device offers.
+
+    The frontend uses this so resolution & fps can only be set to values the
+    device actually supports.
+    """
+    formats, error = _parse_v4l2_formats(device)
+    if error:
+        return {"device": device, "formats": [], "error": error}
     return {"device": device, "formats": formats}
+
+
+@app.get("/api/capture-devices")
+async def get_capture_devices():
+    """List attached V4L2 *capture* devices (cameras / USB capture sticks),
+    filtering out the Pi's internal codec/ISP m2m nodes. A node qualifies if it
+    advertises at least one discrete capture resolution with framerates."""
+    devices = []
+    for node in _list_video_nodes():
+        formats, error = _parse_v4l2_formats(node)
+        if error:
+            continue
+        has_capture = any(r["framerates"] for f in formats for r in f["resolutions"])
+        if has_capture:
+            devices.append({"path": node, "name": _device_card_name(node) or node})
+    return {"devices": devices}
 
 
 @app.get("/api/stream-settings", response_model=StreamSettings)

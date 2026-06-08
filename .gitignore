@@ -45,3 +45,6 @@ mediamtx/LICENSE
 # Python
 __pycache__/
 *.pyc
+
+# Backend runtime state (written by the API)
+backend/stream_settings.json

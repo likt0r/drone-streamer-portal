@@ -19,7 +19,11 @@ export default defineConfig({
     vueDevTools(),
   ],
   server: {
-    host: true, // bind to 0.0.0.0 so Docker/nginx can reach it
+    host: true, // bind to 0.0.0.0 so nginx (dev-pi.conf) can reach it
+    allowedHosts: true, // reached via nginx, which forwards the Pi's Host header
+    hmr: {
+      clientPort: 80, // HMR websocket is proxied through nginx on port 80
+    },
   },
   resolve: {
     alias: {

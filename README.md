@@ -82,3 +82,29 @@ uvicorn main:app --host 0.0.0.0 --port 5002 --reload
 ```
 
 The FastAPI backend logic (like the websocket history streaming and `/api/stream-settings` endpoints) will now be available for the Vue frontend locally!
+
+## 6. Dev mode on the Raspberry Pi
+
+On the deployed Pi you can switch the whole portal between the production build and
+a live dev environment (Vite HMR + backend auto-reload) with one script. Both modes
+use port 80 and `:5002`, so they are mutually exclusive; the choice persists across
+reboots.
+
+```bash
+# from the repo checkout on the Pi (run as your normal user, NOT root):
+scripts/dev-mode.sh dev      # nginx proxies / → Vite dev server (HMR); backend = uvicorn --reload from ./backend
+scripts/dev-mode.sh prod     # nginx serves the built dist/; backend = drone-stats
+scripts/dev-mode.sh status   # show the current mode
+```
+
+In **dev** mode:
+- The Vite dev server runs as the `drone-dev-web` systemd service; nginx
+  (`nginx/dev-pi.conf`) reverse-proxies `/` to it, so HMR works over `http://<pi-ip>/`.
+- The backend runs as `drone-dev-api` (`uvicorn --reload`) directly from
+  `backend/main.py` in the repo, so backend edits hot-reload.
+- The MediaMTX streaming routes (`/{stream}/whep`, `/hls/`, `/webrtc/`) are identical
+  to prod, so the live stream keeps working.
+
+`dev-mode.sh dev` detects the active Node (e.g. Zed's bundled Node) and bakes its path
+into the `drone-dev-web` unit; after a Node version upgrade just run `dev-mode.sh dev`
+again to refresh it.

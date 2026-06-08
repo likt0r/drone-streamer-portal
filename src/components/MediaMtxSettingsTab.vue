@@ -15,8 +15,13 @@ interface VideoFormat {
   pixelformat: string
   resolutions: Resolution[]
 }
+interface CaptureDevice {
+  path: string
+  name: string
+}
 
 const resolutions = ref<Resolution[]>([])
+const captureDevices = ref<CaptureDevice[]>([])
 
 // ─── UI state ────────────────────────────────────────────────────────────────
 const uiSettings = ref({
@@ -32,6 +37,7 @@ const uiSettings = ref({
   bf: 0,
   pix_fmt: 'yuv420p',
   f: 'rtsp',
+  rtsp_transport: 'tcp',
 })
 
 // Defaults shown as hints next to each field.
@@ -45,6 +51,7 @@ const DEFAULTS = {
   bf: 0,
   pix_fmt: 'yuv420p',
   f: 'rtsp',
+  rtsp_transport: 'tcp',
 }
 
 const schema = z.object({
@@ -60,6 +67,17 @@ const schema = z.object({
   bf: z.number().min(0, 'B-frames must be 0 or more'),
   pix_fmt: z.string().min(1),
   f: z.string().min(1),
+  rtsp_transport: z.enum(['tcp', 'udp']),
+})
+
+// ─── Video device select (attached capture devices) ─────────────────────────
+const deviceItems = computed(() => {
+  const items = captureDevices.value.map((d) => ({ label: `${d.name} (${d.path})`, value: d.path }))
+  // Fallback so the currently-configured device is always selectable.
+  if (!items.some((i) => i.value === uiSettings.value.device)) {
+    items.unshift({ label: uiSettings.value.device, value: uiSettings.value.device })
+  }
+  return items
 })
 
 // ─── Resolution / FPS selects derived from the device capabilities ───────────
@@ -139,6 +157,11 @@ const fOptions = [
   { label: 'mpegts', value: 'mpegts', description: 'MPEG Transport Stream' },
 ]
 
+const transportOptions = [
+  { label: 'TCP', value: 'tcp', description: 'Reliable, no packet loss (recommended)' },
+  { label: 'UDP', value: 'udp', description: 'Lower overhead, may drop packets' },
+]
+
 const isSaving = ref(false)
 const saveSuccess = ref(false)
 const saveError = ref('')
@@ -158,6 +181,7 @@ const mapToUI = (data: any) => {
   uiSettings.value.bf = parseInt(data.bf || '0', 10) || 0
   uiSettings.value.pix_fmt = data.pix_fmt || 'yuv420p'
   uiSettings.value.f = data.f || 'rtsp'
+  uiSettings.value.rtsp_transport = data.rtsp_transport === 'udp' ? 'udp' : 'tcp'
 }
 
 const mapToAPI = () => ({
@@ -173,6 +197,7 @@ const mapToAPI = () => ({
   bf: uiSettings.value.bf.toString(),
   pix_fmt: uiSettings.value.pix_fmt,
   f: uiSettings.value.f,
+  rtsp_transport: uiSettings.value.rtsp_transport,
 })
 
 const fetchDevices = async () => {
@@ -187,6 +212,17 @@ const fetchDevices = async () => {
   } catch (err) {
     console.error('Failed to fetch device capabilities:', err)
     resolutions.value = []
+  }
+}
+
+const fetchCaptureDevices = async () => {
+  try {
+    const res = await fetch(`http://${host}:${PORT}/api/capture-devices`)
+    const data = await res.json()
+    captureDevices.value = data.devices || []
+  } catch (err) {
+    console.error('Failed to fetch capture devices:', err)
+    captureDevices.value = []
   }
 }
 
@@ -231,7 +267,7 @@ watch(
 )
 
 onMounted(async () => {
-  await Promise.all([fetchSettings(), fetchDevices()])
+  await Promise.all([fetchSettings(), fetchDevices(), fetchCaptureDevices()])
 })
 </script>
 
@@ -253,16 +289,18 @@ onMounted(async () => {
     <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
       <UForm :schema="schema" :state="uiSettings" @submit="saveSettings" class="space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Device -->
+          <!-- Device (attached capture devices) -->
           <UFormField
             label="Video Device"
             name="device"
-            description="V4L2 capture device path. Available resolutions are read from this device."
+            description="Attached V4L2 capture device. Resolutions/framerates below are read from it."
           >
-            <UInput
+            <USelect
               v-model="uiSettings.device"
-              placeholder="/dev/video0"
+              value-key="value"
+              :items="deviceItems"
               icon="i-heroicons-video-camera"
+              class="w-full"
             />
           </UFormField>
 
@@ -388,6 +426,27 @@ onMounted(async () => {
             </USelect>
           </UFormField>
 
+          <!-- RTSP transport (ffmpeg → MediaMTX publish link) -->
+          <UFormField
+            label="RTSP Transport (ffmpeg → MediaMTX)"
+            name="rtsp_transport"
+            :description="`Internal capture→server link only — does NOT affect the browser (playback is WebRTC/UDP). TCP = reliable (recommended), UDP = less overhead but may drop packets locally. Default: ${DEFAULTS.rtsp_transport}.`"
+          >
+            <USelect
+              v-model="uiSettings.rtsp_transport"
+              value-key="value"
+              :items="transportOptions"
+              class="w-full"
+            >
+              <template #item-label="{ item }">
+                <div class="flex flex-col py-1">
+                  <span class="font-medium">{{ item.label }}</span>
+                  <span class="text-xs text-gray-500">{{ item.description }}</span>
+                </div>
+              </template>
+            </USelect>
+          </UFormField>
+
           <!-- Zero latency -->
           <UFormField
             label="Zero Latency Tuning"
@@ -402,8 +461,9 @@ onMounted(async () => {
 
         <p class="text-xs text-gray-500">
           Saving rewrites the <code>runOnInit</code> command in the system
-          <code>mediamtx.yml</code> and restarts MediaMTX. The boot-safe capture wrapper and
-          <code>-rtsp_transport tcp</code> are always kept. Input format is fixed to MJPEG.
+          <code>mediamtx.yml</code> and restarts MediaMTX. The boot-safe capture wrapper is
+          always kept. Input format is fixed to MJPEG. Browser playback always uses
+          WebRTC (UDP) regardless of the RTSP transport above.
         </p>
 
         <div class="pt-2 flex items-center justify-end gap-4">
