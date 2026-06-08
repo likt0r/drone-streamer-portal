@@ -166,8 +166,8 @@ const stopRenderLoop = () => {
     <!-- ── HOME ─────────────────────────────────────────────────────────────── -->
     <template v-if="status === 'idle'">
       <div class="absolute top-4 right-4 z-50">
-        <UButton to="/info" icon="i-heroicons-chart-bar" color="white" variant="ghost" size="lg">
-          Pi Stats
+        <UButton to="/settings" icon="i-heroicons-cog-6-tooth" color="neutral" variant="ghost" size="lg">
+          Settings
         </UButton>
       </div>
       <div class="flex flex-col items-center gap-8 px-6 w-full">

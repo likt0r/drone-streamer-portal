@@ -41,3 +41,7 @@ __screenshots__/
 # MediaMTX – only the config is tracked; ignore any locally placed binary
 mediamtx/mediamtx
 mediamtx/LICENSE
+
+# Python
+__pycache__/
+*.pyc

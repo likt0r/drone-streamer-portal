@@ -128,6 +128,18 @@ import re
 
 SETTINGS_FILE = "stream_settings.json"
 
+# The fpv path's runOnInit is wrapped by this guard so ffmpeg waits for the USB
+# capture device to be ready on boot. It MUST be preserved when we rewrite the
+# command, otherwise saving stream settings would re-introduce the boot-race.
+WAIT_FOR_VIDEO_WRAPPER = "sh /opt/mediamtx/wait-for-video.sh "
+
+# mediamtx.yml is the single source of truth. Production uses /opt, a dev
+# checkout uses the repo copy.
+MEDIAMTX_YAML_PATHS = [
+    "/opt/mediamtx/mediamtx.yml",
+    "../mediamtx/mediamtx.yml",
+]
+
 class StreamSettings(BaseModel):
     device: str
     width: int
@@ -152,85 +164,196 @@ def get_default_settings() -> StreamSettings:
         maxrate="10000k",
         bufsize="8000k",
         g="15",
-        tune="zerolatency",
+        tune="",
         bf="0",
         pix_fmt="yuv420p",
         f="rtsp"
     )
 
+def _target_yaml() -> str | None:
+    for path in MEDIAMTX_YAML_PATHS:
+        if os.path.exists(path):
+            return path
+    return None
+
+# Matches the fpv path's runOnInit and captures (1) everything up to and
+# including "runOnInit: " and (2) the command value (rest of the line).
+_FPV_RUNONINIT_RE = r"(fpv:\s+source:\s*publisher\s+runOnInit:\s*)(.+)"
+
+def parse_settings_from_yaml() -> StreamSettings | None:
+    """Read the current stream settings from the live mediamtx.yml runOnInit."""
+    path = _target_yaml()
+    if not path:
+        return None
+    try:
+        with open(path, "r") as f:
+            content = f.read()
+    except Exception:
+        return None
+
+    m = re.search(_FPV_RUNONINIT_RE, content)
+    if not m:
+        return None
+    cmd = m.group(2).strip()
+
+    def first(flag: str, default: str) -> str:
+        mm = re.search(rf"{re.escape(flag)}\s+(\S+)", cmd)
+        return mm.group(1) if mm else default
+
+    size = re.search(r"-video_size\s+(\d+)x(\d+)", cmd)
+    width = int(size.group(1)) if size else 1280
+    height = int(size.group(2)) if size else 720
+
+    # -f appears twice: input "-f v4l2" and the output format at the end.
+    out_formats = re.findall(r"-f\s+(\S+)", cmd)
+    out_f = out_formats[-1] if out_formats else "rtsp"
+
+    tune_m = re.search(r"-tune\s+(\S+)", cmd)
+
+    try:
+        return StreamSettings(
+            device=first("-i", "/dev/video0"),
+            width=width,
+            height=height,
+            fps=int(first("-framerate", "30")),
+            bitrate=first("-b:v", "8000k"),
+            maxrate=first("-maxrate", "10000k"),
+            bufsize=first("-bufsize", "8000k"),
+            g=first("-g", "15"),
+            tune=tune_m.group(1) if tune_m else "",
+            bf=first("-bf", "0"),
+            pix_fmt=first("-pix_fmt", "yuv420p"),
+            f=out_f,
+        )
+    except Exception:
+        return None
+
+def build_runoninit(settings: StreamSettings) -> str:
+    """Build the runOnInit command: wait-for-video wrapper + ffmpeg.
+
+    Always keeps the boot guard wrapper and -rtsp_transport tcp; -tune is only
+    emitted when set (h264_v4l2m2m ignores it, but we honour an explicit value).
+    """
+    tune_part = f"-tune {settings.tune} " if settings.tune else ""
+    ffmpeg_cmd = (
+        f"ffmpeg -f v4l2 -input_format mjpeg -framerate {settings.fps} "
+        f"-video_size {settings.width}x{settings.height} -i {settings.device} "
+        f"-c:v h264_v4l2m2m -b:v {settings.bitrate} -maxrate {settings.maxrate} -bufsize {settings.bufsize} "
+        f"-g {settings.g} {tune_part}-bf {settings.bf} -pix_fmt {settings.pix_fmt} "
+        f"-rtsp_transport tcp -f {settings.f} rtsp://localhost:$RTSP_PORT/$RTSP_PATH"
+    )
+    return WAIT_FOR_VIDEO_WRAPPER + ffmpeg_cmd
+
+
+def _v4l2_ctl_bin() -> str:
+    # The systemd unit runs us with PATH=venv/bin only, so resolve the absolute
+    # path to v4l2-ctl ourselves.
+    for p in ("/usr/bin/v4l2-ctl", "/usr/local/bin/v4l2-ctl", "/bin/v4l2-ctl"):
+        if os.path.exists(p):
+            return p
+    return "v4l2-ctl"
+
+
+@app.get("/api/video-devices")
+async def get_video_devices(device: str = "/dev/video0"):
+    """Return the capture formats / resolutions / framerates a V4L2 device offers.
+
+    The frontend uses this so resolution & fps can only be set to values the
+    device actually supports.
+    """
+    try:
+        res = subprocess.run(
+            [_v4l2_ctl_bin(), "-d", device, "--list-formats-ext"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except Exception as e:
+        return {"device": device, "formats": [], "error": str(e)}
+
+    if res.returncode != 0:
+        return {"device": device, "formats": [], "error": res.stderr.strip() or "v4l2-ctl failed"}
+
+    formats: list = []
+    cur_fmt = None
+    cur_res = None
+    for line in res.stdout.splitlines():
+        s = line.strip()
+        m = re.match(r"\[\d+\]:\s*'(\w+)'", s)
+        if m:
+            cur_fmt = {"pixelformat": m.group(1), "resolutions": []}
+            formats.append(cur_fmt)
+            cur_res = None
+            continue
+        m = re.match(r"Size:\s*Discrete\s+(\d+)x(\d+)", s)
+        if m and cur_fmt is not None:
+            cur_res = {"width": int(m.group(1)), "height": int(m.group(2)), "framerates": []}
+            cur_fmt["resolutions"].append(cur_res)
+            continue
+        m = re.search(r"\(([\d.]+)\s*fps\)", s)
+        if m and cur_res is not None:
+            fps = round(float(m.group(1)))
+            if fps not in cur_res["framerates"]:
+                cur_res["framerates"].append(fps)
+
+    return {"device": device, "formats": formats}
+
+
 @app.get("/api/stream-settings", response_model=StreamSettings)
 async def get_stream_settings():
-    if not os.path.exists(SETTINGS_FILE):
-        return get_default_settings()
-    try:
-        with open(SETTINGS_FILE, "r") as f:
-            data = json.load(f)
-            return StreamSettings(**data)
-    except Exception:
-        return get_default_settings()
+    # Source of truth is the live mediamtx.yml; fall back to cached JSON, then defaults.
+    parsed = parse_settings_from_yaml()
+    if parsed:
+        return parsed
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                return StreamSettings(**json.load(f))
+        except Exception:
+            pass
+    return get_default_settings()
 
 @app.post("/api/stream-settings")
 async def save_stream_settings(settings: StreamSettings):
-    # Save to JSON
+    # Cache to JSON (audit / fallback)
     with open(SETTINGS_FILE, "w") as f:
         json.dump(settings.model_dump(), f, indent=2)
-    
-    # Rebuild mediamtx.yml
-    # Typically production uses /opt/mediamtx/mediamtx.yml
-    # Dev uses ../mediamtx/mediamtx.yml
-    yaml_paths = [
-        "/opt/mediamtx/mediamtx.yml",
-        "../mediamtx/mediamtx.yml"
-    ]
-    
-    target_yaml = None
-    for path in yaml_paths:
-        if os.path.exists(path):
-            target_yaml = path
-            break
-            
-    if target_yaml:
+
+    target_yaml = _target_yaml()
+    if not target_yaml:
+        return {"status": "error", "message": "mediamtx.yml not found"}
+
+    try:
+        with open(target_yaml, "r") as f:
+            content = f.read()
+
+        new_cmd = build_runoninit(settings)
+        # Replace ONLY the runOnInit value of the fpv block; keep everything else
+        # (indentation, comments, the whole rest of the config) untouched.
+        updated_content, n = re.subn(
+            _FPV_RUNONINIT_RE,
+            lambda m: m.group(1) + new_cmd,
+            content,
+            count=1,
+        )
+        if n == 0:
+            return {"status": "error", "message": "Could not locate fpv runOnInit in mediamtx.yml"}
+
+        with open(target_yaml, "w") as f:
+            f.write(updated_content)
+
+        # Backend runs as root -> no sudo needed. New ffmpeg params take effect on restart.
+        # systemctl is resolved by absolute path because the unit's PATH is venv-only.
+        systemctl = next(
+            (p for p in ("/usr/bin/systemctl", "/bin/systemctl") if os.path.exists(p)),
+            "systemctl",
+        )
         try:
-            with open(target_yaml, "r") as f:
-                content = f.read()
-                
-            # ffmpeg command template
-            new_cmd = (
-                f"ffmpeg -f v4l2 -input_format mjpeg -framerate {settings.fps} "
-                f"-video_size {settings.width}x{settings.height} -i {settings.device} "
-                f"-c:v h264_v4l2m2m -b:v {settings.bitrate} -maxrate {settings.maxrate} -bufsize {settings.bufsize} "
-                f"-g {settings.g} -tune {settings.tune} -bf {settings.bf} -pix_fmt {settings.pix_fmt} -f {settings.f} rtsp://localhost:$RTSP_PORT/$RTSP_PATH"
-            )
-            
-            # Use regex to find and replace the runOnInit line under fpv:
-            # We look for something like:
-            # fpv:
-            #   source: publisher
-            #   runOnInit: ffmpeg ...
-            pattern = r"(fpv:\s+source:\s+publisher\s+runOnInit:\s+).*?(?=\n\s*runOnInitRestart:)"
-            replacement = r"\g<1>" + new_cmd
-            
-            updated_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-            
-            # If the regex didn't match (maybe formatting is different), let's try a simpler line replacement
-            if updated_content == content:
-                # Just replace the runOnInit line starting with ffmpeg
-                line_pattern = r"(runOnInit:\s+ffmpeg\s+).*?(?=\n)"
-                line_replacement = r"runOnInit: " + new_cmd
-                updated_content = re.sub(line_pattern, line_replacement, content)
-                
-            with open(target_yaml, "w") as f:
-                f.write(updated_content)
-                
-            # Restart mediamtx
-            try:
-                subprocess.run(["sudo", "systemctl", "restart", "mediamtx"], check=True)
-            except Exception as e:
-                # Might fail in dev without sudo
-                print(f"Failed to restart mediamtx (expected in dev): {e}")
-                
+            subprocess.run([systemctl, "restart", "mediamtx"], check=True)
         except Exception as e:
-            print(f"Error updating config: {e}")
-            return {"status": "error", "message": str(e)}
+            print(f"Failed to restart mediamtx: {e}")
+            return {"status": "error", "message": f"Settings saved but mediamtx restart failed: {e}"}
+
+    except Exception as e:
+        print(f"Error updating config: {e}")
+        return {"status": "error", "message": str(e)}
 
     return {"status": "success"}

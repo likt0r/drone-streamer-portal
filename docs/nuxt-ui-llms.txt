@@ -1,12 +1,3 @@
-<!--
-  Nuxt UI reference for AI agents working in this repo.
-  Source: https://ui.nuxt.com/llms.txt (canonical machine-readable index;
-  full docs at https://ui.nuxt.com/llms-full.txt). There is no official
-  AGENTS.md in the nuxt/ui repository — llms.txt is the upstream agent doc.
-  A verbatim freshly-pulled copy lives at docs/nuxt-ui-llms.txt (pulled 2026-06-08).
-  This project uses @nuxt/ui v4 in a plain Vue + Vite setup (see vite.config.ts / main.ts).
--->
-
 # Nuxt UI
 
 > A comprehensive Vue UI component library (Nuxt optional) with 125+ accessible, production-ready, Tailwind CSS components for building modern web applications.
@@ -59,11 +50,15 @@
 - [Carousel](https://ui.nuxt.com/raw/docs/components/carousel.md): A carousel with motion and swipe built using Embla.
 - [ChangelogVersion](https://ui.nuxt.com/raw/docs/components/changelog-version.md): A customizable article to display in a changelog.
 - [ChangelogVersions](https://ui.nuxt.com/raw/docs/components/changelog-versions.md): Display a list of changelog versions in a timeline.
+- [Chat](https://ui.nuxt.com/raw/docs/components/chat.md): Build AI chat interfaces with streaming, reasoning, and tool calling.
 - [ChatMessage](https://ui.nuxt.com/raw/docs/components/chat-message.md): Display a chat message with icon, avatar, and actions.
 - [ChatMessages](https://ui.nuxt.com/raw/docs/components/chat-messages.md): Display a list of chat messages, designed to work seamlessly with Vercel AI SDK.
 - [ChatPalette](https://ui.nuxt.com/raw/docs/components/chat-palette.md): A chat palette to create a chatbot interface inside an overlay.
 - [ChatPrompt](https://ui.nuxt.com/raw/docs/components/chat-prompt.md): An enhanced Textarea for submitting prompts in AI chat interfaces.
 - [ChatPromptSubmit](https://ui.nuxt.com/raw/docs/components/chat-prompt-submit.md): A Button for submitting chat prompts with automatic status handling.
+- [ChatReasoning](https://ui.nuxt.com/raw/docs/components/chat-reasoning.md): Display a collapsible AI reasoning or thinking process.
+- [ChatShimmer](https://ui.nuxt.com/raw/docs/components/chat-shimmer.md): Display a text shimmer animation effect.
+- [ChatTool](https://ui.nuxt.com/raw/docs/components/chat-tool.md): Display a collapsible AI tool invocation status.
 - [Checkbox](https://ui.nuxt.com/raw/docs/components/checkbox.md): An input element to toggle between checked and unchecked states.
 - [CheckboxGroup](https://ui.nuxt.com/raw/docs/components/checkbox-group.md): A set of checklist buttons to select multiple option from a list.
 - [Chip](https://ui.nuxt.com/raw/docs/components/chip.md): An indicator of a numeric value or a state.
@@ -118,6 +113,7 @@
 - [InputTime](https://ui.nuxt.com/raw/docs/components/input-time.md): An input for selecting a time.
 - [Kbd](https://ui.nuxt.com/raw/docs/components/kbd.md): A kbd element to display a keyboard key.
 - [Link](https://ui.nuxt.com/raw/docs/components/link.md): A wrapper around <NuxtLink> with extra props.
+- [Listbox](https://ui.nuxt.com/raw/docs/components/listbox.md): A selectable list of items with search, virtualization and rich item rendering.
 - [LocaleSelect](https://ui.nuxt.com/raw/docs/components/locale-select.md): A Select to switch between locales.
 - [Main](https://ui.nuxt.com/raw/docs/components/main.md): A main element that fills the available viewport height.
 - [Marquee](https://ui.nuxt.com/raw/docs/components/marquee.md): A component to create infinite scrolling content.
@@ -150,6 +146,7 @@
 - [Select](https://ui.nuxt.com/raw/docs/components/select.md): A select element to choose from a list of options.
 - [SelectMenu](https://ui.nuxt.com/raw/docs/components/select-menu.md): An advanced searchable select element.
 - [Separator](https://ui.nuxt.com/raw/docs/components/separator.md): Separates content horizontally or vertically.
+- [Sidebar](https://ui.nuxt.com/raw/docs/components/sidebar.md): A collapsible sidebar with multiple visual variants.
 - [Skeleton](https://ui.nuxt.com/raw/docs/components/skeleton.md): A placeholder to show while content is loading.
 - [Slideover](https://ui.nuxt.com/raw/docs/components/slideover.md): A dialog that slides in from any side of the screen.
 - [Slider](https://ui.nuxt.com/raw/docs/components/slider.md): An input to select a numeric value within a range.
@@ -171,9 +168,10 @@
 - [defineShortcuts](https://ui.nuxt.com/raw/docs/composables/define-shortcuts.md): A composable to define keyboard shortcuts in your app.
 - [extendLocale](https://ui.nuxt.com/raw/docs/composables/extend-locale.md): A utility to extend an existing locale with custom translations.
 - [extractShortcuts](https://ui.nuxt.com/raw/docs/composables/extract-shortcuts.md): A utility to extract keyboard shortcuts from menu items.
-- [useFormField](https://ui.nuxt.com/raw/docs/composables/use-form-field.md): A composable to integrate custom inputs with the Form component
 - [useOverlay](https://ui.nuxt.com/raw/docs/composables/use-overlay.md): A composable to programmatically control overlays.
+- [useScrollShadow](https://ui.nuxt.com/raw/docs/composables/use-scroll-shadow.md): A composable to apply scroll shadow effects on any scrollable element.
 - [useToast](https://ui.nuxt.com/raw/docs/composables/use-toast.md): A composable to display toast notifications in your app.
+- [useTour](https://ui.nuxt.com/raw/docs/composables/use-tour.md): A composable to build guided tours by re-anchoring a single Popover across steps.
 
 ## Documentation Sets
 

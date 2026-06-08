@@ -41,6 +41,7 @@ const currentGpuLoad = ref<number>(0)
 
 const historyData = ref<StatResponse[]>([])
 const ws = ref<WebSocket | null>(null)
+let wsClosedByUs = false
 
 // Chart options to configure Time X-axis properly
 const chartOptions = {
@@ -124,7 +125,7 @@ const getLoadChartData = () => {
         label: 'CPU (%)',
         backgroundColor: '#10b981',
         borderColor: '#10b981',
-        data: historyData.value.map((s) => ({ x: s.timestamp, y: s.cpu })),
+        data: historyData.value.map((s) => ({ x: s.timestamp, y: s.cpu_load })),
         pointRadius: 0,
         borderWidth: 2,
         tension: 0.1,
@@ -184,6 +185,7 @@ const connectWebSocket = () => {
   }
 
   ws.value.onclose = () => {
+    if (wsClosedByUs) return
     console.log('WebSocket disconnected, reconnecting in 5s...')
     setTimeout(connectWebSocket, 5000)
   }
@@ -195,6 +197,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  wsClosedByUs = true
   if (ws.value) {
     ws.value.close()
   }
@@ -202,123 +205,98 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="dark bg-black min-h-screen w-full text-white">
-    <UContainer class="py-8">
-      <div class="flex items-center justify-between mb-8">
-        <div>
-          <h1 class="text-2xl font-bold text-white">Hardware Monitoring</h1>
-          <p class="text-gray-400">Live 30-minute system metrics</p>
-        </div>
-        <div class="flex gap-2">
-          <UButton to="/settings" icon="i-heroicons-cog-8-tooth" color="gray" variant="ghost">
-            Stream Settings
-          </UButton>
-          <UButton to="/" icon="i-heroicons-arrow-left" color="primary" variant="ghost">
-            Back to Stream
-          </UButton>
-        </div>
-      </div>
+  <div>
+    <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-4 mb-6">
+      <UBadge
+        color="error"
+        variant="soft"
+        size="md"
+        icon="i-heroicons-fire"
+        :ui="{ rounded: 'rounded-full' }"
+      >
+        <span class="font-normal text-gray-400 mr-1 hidden sm:inline">CPU:</span>
+        <span class="font-bold text-white inline-block w-[3ch] text-right">{{ currentCpuTemp }}</span
+        ><span class="font-normal opacity-75 ml-0.5 text-gray-400">°C</span>
+      </UBadge>
 
-      <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-4 mb-6 mt-[-10px]">
-        <UBadge
-          color="error"
-          variant="soft"
-          size="md"
-          icon="i-heroicons-fire"
-          :ui="{ rounded: 'rounded-full' }"
-        >
-          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">CPU:</span>
-          <span class="font-bold text-white inline-block w-[3ch] text-right">{{
-            currentCpuTemp
-          }}</span
-          ><span class="font-normal opacity-75 ml-0.5 text-gray-400">°C</span>
-        </UBadge>
+      <UBadge
+        color="info"
+        variant="soft"
+        size="md"
+        icon="i-heroicons-fire"
+        :ui="{ rounded: 'rounded-full' }"
+      >
+        <span class="font-normal text-gray-400 mr-1 hidden sm:inline">GPU:</span>
+        <span class="font-bold text-white inline-block w-[3ch] text-right">{{ currentGpuTemp }}</span
+        ><span class="font-normal opacity-75 ml-0.5 text-gray-400">°C</span>
+      </UBadge>
 
-        <UBadge
-          color="info"
-          variant="soft"
-          size="md"
-          icon="i-heroicons-fire"
-          :ui="{ rounded: 'rounded-full' }"
-        >
-          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">GPU:</span>
-          <span class="font-bold text-white inline-block w-[3ch] text-right">{{
-            currentGpuTemp
-          }}</span
-          ><span class="font-normal opacity-75 ml-0.5 text-gray-400">°C</span>
-        </UBadge>
+      <UBadge
+        color="success"
+        variant="soft"
+        size="md"
+        icon="i-heroicons-cpu-chip"
+        :ui="{ rounded: 'rounded-full' }"
+      >
+        <span class="font-normal text-gray-400 mr-1 hidden sm:inline">CPU Load:</span>
+        <span class="font-bold text-white inline-block w-[3ch] text-right">{{ currentCpuLoad }}</span
+        ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
+      </UBadge>
 
-        <UBadge
-          color="success"
-          variant="soft"
-          size="md"
-          icon="i-heroicons-cpu-chip"
-          :ui="{ rounded: 'rounded-full' }"
-        >
-          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">CPU Load:</span>
-          <span class="font-bold text-white inline-block w-[3ch] text-right">{{
-            currentCpuLoad
-          }}</span
-          ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
-        </UBadge>
+      <UBadge
+        color="primary"
+        variant="soft"
+        size="md"
+        icon="i-heroicons-cpu-chip"
+        :ui="{ rounded: 'rounded-full' }"
+      >
+        <span class="font-normal text-gray-400 mr-1 hidden sm:inline">GPU Load:</span>
+        <span class="font-bold text-white inline-block w-[3ch] text-right">{{ currentGpuLoad }}</span
+        ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
+      </UBadge>
+    </div>
 
-        <UBadge
-          color="primary"
-          variant="soft"
-          size="md"
-          icon="i-heroicons-cpu-chip"
-          :ui="{ rounded: 'rounded-full' }"
-        >
-          <span class="font-normal text-gray-400 mr-1 hidden sm:inline">GPU Load:</span>
-          <span class="font-bold text-white inline-block w-[3ch] text-right">{{
-            currentGpuLoad
-          }}</span
-          ><span class="font-normal opacity-75 ml-0.5 text-gray-400">%</span>
-        </UBadge>
-      </div>
-
-      <!-- Charts -->
-      <div class="grid grid-cols-1 gap-6">
-        <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
-          <template #header>
-            <h3 class="font-semibold text-white">Temperature History</h3>
-          </template>
-          <div class="h-[300px]">
-            <Line
-              v-if="historyData.length > 0"
-              :data="getTemperatureChartData()"
-              :options="chartOptions as any"
-            />
-            <div v-else class="h-full flex items-center justify-center text-gray-500">
-              Loading data...
-            </div>
+    <!-- Charts -->
+    <div class="grid grid-cols-1 gap-6">
+      <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
+        <template #header>
+          <h3 class="font-semibold text-white">Temperature History</h3>
+        </template>
+        <div class="h-[300px]">
+          <Line
+            v-if="historyData.length > 0"
+            :data="getTemperatureChartData()"
+            :options="chartOptions as any"
+          />
+          <div v-else class="h-full flex items-center justify-center text-gray-500">
+            Loading data...
           </div>
-        </UCard>
+        </div>
+      </UCard>
 
-        <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
-          <template #header>
-            <h3 class="font-semibold text-white">System Load History</h3>
-          </template>
-          <div class="h-[300px]">
-            <Line
-              v-if="historyData.length > 0"
-              :data="getLoadChartData()"
-              :options="
-                {
-                  ...chartOptions,
-                  scales: {
-                    x: chartOptions.scales.x,
-                    y: { ...chartOptions.scales.y, min: 0, max: 100 },
-                  },
-                } as any
-              "
-            />
-            <div v-else class="h-full flex items-center justify-center text-gray-500">
-              Loading data...
-            </div>
+      <UCard :ui="{ background: 'bg-black', ring: 'ring-gray-800' }">
+        <template #header>
+          <h3 class="font-semibold text-white">System Load History</h3>
+        </template>
+        <div class="h-[300px]">
+          <Line
+            v-if="historyData.length > 0"
+            :data="getLoadChartData()"
+            :options="
+              {
+                ...chartOptions,
+                scales: {
+                  x: chartOptions.scales.x,
+                  y: { ...chartOptions.scales.y, min: 0, max: 100 },
+                },
+              } as any
+            "
+          />
+          <div v-else class="h-full flex items-center justify-center text-gray-500">
+            Loading data...
           </div>
-        </UCard>
-      </div>
-    </UContainer>
+        </div>
+      </UCard>
+    </div>
   </div>
 </template>
