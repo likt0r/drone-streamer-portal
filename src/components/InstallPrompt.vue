@@ -27,6 +27,8 @@ const isIos = () =>
   // iPadOS reports itself as a Mac, but Macs have no touch screen
   (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1)
 
+const isAndroid = () => /Android/.test(navigator.userAgent)
+
 const handleBeforeInstallPrompt = (e: Event) => {
   e.preventDefault()
   installEvent.value = e as BeforeInstallPromptEvent
@@ -34,7 +36,11 @@ const handleBeforeInstallPrompt = (e: Event) => {
 
 onMounted(() => {
   if (isStandalone()) return
-  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  // Mobile only: desktop browsers fire beforeinstallprompt too, but
+  // installing makes no sense there (fullscreen works directly)
+  if (isAndroid()) {
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  }
   showIosHint.value = isIos()
 })
 
