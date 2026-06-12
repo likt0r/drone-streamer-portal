@@ -10,6 +10,7 @@ After=network-online.target
 User=pi
 WorkingDirectory=__REPO_DIR__
 Environment=PATH=__NODE_DIR__:/usr/local/bin:/usr/bin:/bin
+Environment=PI_DEV=1
 ExecStart=__NODE_DIR__/npm run dev
 Restart=on-failure
 RestartSec=3
