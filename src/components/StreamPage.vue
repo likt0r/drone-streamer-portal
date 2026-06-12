@@ -6,6 +6,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { WebRTCClient } from '../utils/webrtc.client'
 import StreamButton from './StreamButton.vue'
+import InstallPrompt from './InstallPrompt.vue'
 
 const props = defineProps<{
   streamUrl: string
@@ -227,6 +228,7 @@ const stopRenderLoop = () => {
           <StreamButton icon="i-heroicons-eye" label="Start VR Mode" @click="launch('vr')" />
         </div>
       </div>
+      <InstallPrompt />
     </template>
 
     <!-- ── CONNECTING ────────────────────────────────────────────────────────── -->

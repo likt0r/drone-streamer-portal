@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     HardwareMonitorTab: typeof import('./src/components/HardwareMonitorTab.vue')['default']
+    InstallPrompt: typeof import('./src/components/InstallPrompt.vue')['default']
     MediaMtxSettingsTab: typeof import('./src/components/MediaMtxSettingsTab.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
