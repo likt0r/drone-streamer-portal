@@ -1,0 +1,12 @@
+Package: drone-streamer-portal
+Version: __VERSION__
+Section: video
+Priority: optional
+Architecture: __ARCH__
+Depends: nginx, ffmpeg, v4l-utils, python3, python3-venv, python3-pip, curl
+Maintainer: Benjamin Werner <bewr@pm.me>
+Description: FPV drone streaming portal (MediaMTX + FastAPI + Vue)
+ Web portal for low-latency FPV drone streaming on a Raspberry Pi:
+ MediaMTX (WebRTC/WHEP) fed by an ffmpeg V4L2 capture pipeline, a
+ FastAPI backend for stream settings and hardware monitoring, and a
+ Vue frontend served by nginx.

@@ -5,4 +5,4 @@ Wants=mediamtx.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/mediamtx-watchdog.sh
+ExecStart=/opt/mediamtx/mediamtx-watchdog.sh

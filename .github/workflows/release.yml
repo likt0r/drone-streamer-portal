@@ -36,6 +36,12 @@ jobs:
           echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
 
+      - name: Build Debian package (arm64)
+        run: |
+          bash scripts/build-deb.sh "${GITHUB_REF_NAME#v}"
+          echo "DEB=build/drone-streamer-portal_${GITHUB_REF_NAME#v}_arm64.deb" >> "$GITHUB_ENV"
+          echo "DEB_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -43,15 +49,23 @@ jobs:
           body: |
             ## drone-streamer-portal ${{ env.VERSION }}
 
-            ### Installation on Raspberry Pi
+            ### Install / update on Raspberry Pi
+
+            One Debian package contains everything (frontend, backend, MediaMTX, nginx site, systemd units). Installing it again updates an existing installation in place; a user-edited `mediamtx.yml` is preserved.
 
             ```bash
-            git clone https://github.com/likt0r/drone-streamer-portal.git
-            cd drone-streamer-portal
-            git checkout ${{ env.VERSION }}
-            sudo bash scripts/install-pi.sh
+            curl -fsSL https://raw.githubusercontent.com/likt0r/drone-streamer-portal/${{ env.VERSION }}/scripts/install-pi.sh | sudo bash
             ```
 
-            Or download the pre-built package below and extract to `/var/www/drone-streamer-portal/`.
-          files: ${{ env.ARCHIVE }}
+            Or manually:
+
+            ```bash
+            curl -fsSLO https://github.com/likt0r/drone-streamer-portal/releases/download/${{ env.VERSION }}/drone-streamer-portal_${{ env.DEB_VERSION }}_arm64.deb
+            sudo apt install ./drone-streamer-portal_*_arm64.deb
+            ```
+
+            The `drone-streamer-portal-${{ env.VERSION }}.tar.gz` below is just the frontend build (legacy artefact).
+          files: |
+            ${{ env.ARCHIVE }}
+            ${{ env.DEB }}
           fail_on_unmatched_files: true

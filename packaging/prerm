@@ -1,0 +1,10 @@
+#!/bin/sh
+# prerm – stop services when the package is removed (not on upgrade)
+set -e
+
+if [ "$1" = "remove" ]; then
+    systemctl stop mediamtx-watchdog.timer mediamtx drone-stats 2>/dev/null || true
+    systemctl disable mediamtx-watchdog.timer mediamtx drone-stats 2>/dev/null || true
+fi
+
+exit 0

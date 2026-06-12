@@ -1,0 +1,51 @@
+#!/bin/sh
+# postinst – configure drone-streamer-portal after unpack
+set -e
+
+BACKEND_DIR=/opt/drone-streamer-backend
+MEDIAMTX_DIR=/opt/mediamtx
+CONFIG_TEMPLATE=/usr/share/drone-streamer-portal/mediamtx.yml
+NGINX_SITE=/etc/nginx/sites-available/drone-streamer-portal
+
+case "$1" in
+    configure)
+        # Migrate from the old script-based install: unit files in
+        # /etc/systemd/system would shadow the packaged ones in /usr/lib.
+        for unit in mediamtx.service drone-stats.service \
+                    mediamtx-watchdog.service mediamtx-watchdog.timer; do
+            if [ -f "/etc/systemd/system/$unit" ] && [ ! -L "/etc/systemd/system/$unit" ]; then
+                rm -f "/etc/systemd/system/$unit"
+            fi
+        done
+        rm -f /usr/local/bin/mediamtx /usr/local/bin/mediamtx-watchdog.sh
+
+        # Keep an existing (possibly user-edited) mediamtx.yml; the backend
+        # rewrites it at runtime, so it is config, not a package file.
+        if [ ! -f "$MEDIAMTX_DIR/mediamtx.yml" ]; then
+            cp "$CONFIG_TEMPLATE" "$MEDIAMTX_DIR/mediamtx.yml"
+        fi
+
+        # Python venv for the FastAPI backend (needs internet on first install)
+        if [ ! -d "$BACKEND_DIR/venv" ]; then
+            python3 -m venv "$BACKEND_DIR/venv"
+        fi
+        "$BACKEND_DIR/venv/bin/pip" install --quiet --upgrade pip
+        "$BACKEND_DIR/venv/bin/pip" install --quiet -r "$BACKEND_DIR/requirements.txt"
+
+        # Enable the nginx site
+        ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/drone-streamer-portal
+        rm -f /etc/nginx/sites-enabled/default
+
+        systemctl daemon-reload
+        systemctl enable nginx mediamtx drone-stats mediamtx-watchdog.timer >/dev/null
+        systemctl restart mediamtx drone-stats
+        systemctl start mediamtx-watchdog.timer
+        if nginx -t >/dev/null 2>&1; then
+            systemctl reload-or-restart nginx
+        else
+            echo "WARNING: nginx config test failed, not reloading nginx" >&2
+        fi
+        ;;
+esac
+
+exit 0

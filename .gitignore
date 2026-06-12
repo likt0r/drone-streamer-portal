@@ -48,3 +48,4 @@ __pycache__/
 
 # Backend runtime state (written by the API)
 backend/stream_settings.json
+build

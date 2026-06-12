@@ -1,0 +1,18 @@
+#!/bin/sh
+# postrm – clean up after package removal
+set -e
+
+case "$1" in
+    remove)
+        rm -f /etc/nginx/sites-enabled/drone-streamer-portal
+        systemctl daemon-reload 2>/dev/null || true
+        systemctl reload nginx 2>/dev/null || true
+        ;;
+    purge)
+        # Generated at runtime, not owned by dpkg: venv, live mediamtx.yml,
+        # settings cache, leftover web root
+        rm -rf /opt/drone-streamer-backend /opt/mediamtx /var/www/drone-streamer-portal
+        ;;
+esac
+
+exit 0

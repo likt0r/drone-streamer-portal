@@ -1,0 +1,18 @@
+[Unit]
+Description=MediaMTX streaming server
+# Wait for full network (eth0 IP) so WebRTC ICE candidates include the LAN address.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/mediamtx
+ExecStart=/opt/mediamtx/mediamtx /opt/mediamtx/mediamtx.yml
+Restart=always
+RestartSec=5
+# Give access to video devices
+SupplementaryGroups=video
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
