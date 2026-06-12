@@ -3,7 +3,7 @@
  * Drone Streamer Portal FPV Portal - Unified Stream Page
  * One-click streaming with VR and Normal modes.
  */
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { WebRTCClient } from '../utils/webrtc.client'
 import StreamButton from './StreamButton.vue'
 
@@ -25,25 +25,67 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 let webRTCClient: WebRTCClient | null = null
 let renderFrameId: number | null = null
+let resizeObserver: ResizeObserver | null = null
+
+// iOS Safari only exposes fullscreen through webkit-prefixed APIs: element
+// fullscreen exists on iPad as webkitRequestFullscreen, while iPhone only
+// supports the native video player via webkitEnterFullscreen.
+type WebKitDocument = Document & { webkitFullscreenElement?: Element | null }
+type WebKitElement = HTMLElement & { webkitRequestFullscreen?: () => void }
+type WebKitVideoElement = HTMLVideoElement & { webkitEnterFullscreen?: () => void }
 
 const handleFullscreenChange = () => {
-  isFullscreen.value = !!document.fullscreenElement
+  const doc = document as WebKitDocument
+  isFullscreen.value = !!(document.fullscreenElement || doc.webkitFullscreenElement)
+}
+
+const handleVideoEnterFullscreen = () => {
+  isFullscreen.value = true
+}
+
+const handleVideoExitFullscreen = () => {
+  isFullscreen.value = false
 }
 
 onMounted(() => {
   document.addEventListener('fullscreenchange', handleFullscreenChange)
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
+  videoRef.value?.addEventListener('webkitbeginfullscreen', handleVideoEnterFullscreen)
+  videoRef.value?.addEventListener('webkitendfullscreen', handleVideoExitFullscreen)
 })
 
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
+  videoRef.value?.removeEventListener('webkitbeginfullscreen', handleVideoEnterFullscreen)
+  videoRef.value?.removeEventListener('webkitendfullscreen', handleVideoExitFullscreen)
+  resizeObserver?.disconnect()
+  resizeObserver = null
+})
+
+const canFullscreen = computed(() => {
+  const el = document.documentElement as WebKitElement
+  if (typeof el.requestFullscreen === 'function' || el.webkitRequestFullscreen) return true
+  const video = videoRef.value as WebKitVideoElement | null
+  return mode.value === 'normal' && !!video?.webkitEnterFullscreen
 })
 
 const requestFullscreen = async () => {
-  if (document.documentElement.requestFullscreen) {
-    try {
-      await document.documentElement.requestFullscreen()
-    } catch (_) {}
-  }
+  const el = document.documentElement as WebKitElement
+  try {
+    if (typeof el.requestFullscreen === 'function') {
+      await el.requestFullscreen()
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen()
+    } else if (mode.value === 'normal') {
+      // iPhone: only the native video player can go fullscreen. Needs loaded
+      // metadata, so this no-ops during launch() and works once streaming.
+      const video = videoRef.value as WebKitVideoElement | null
+      if (video?.webkitEnterFullscreen && video.readyState >= 1) {
+        video.webkitEnterFullscreen()
+      }
+    }
+  } catch (_) {}
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
@@ -57,7 +99,8 @@ const launch = async (selectedMode: Mode) => {
   await requestFullscreen()
 
   updateCanvasSize()
-  window.addEventListener('resize', updateCanvasSize)
+  resizeObserver = new ResizeObserver(updateCanvasSize)
+  resizeObserver.observe(canvasRef.value)
 
   // Push a history entry so the back button fires popstate instead of navigating away
   history.pushState({ streaming: true }, '')
@@ -89,7 +132,8 @@ const launch = async (selectedMode: Mode) => {
 const handlePopState = () => stop()
 
 const stop = () => {
-  window.removeEventListener('resize', updateCanvasSize)
+  resizeObserver?.disconnect()
+  resizeObserver = null
   window.removeEventListener('popstate', handlePopState)
   webRTCClient?.disconnect()
   webRTCClient = null
@@ -103,8 +147,11 @@ const stop = () => {
 // ─── Canvas ───────────────────────────────────────────────────────────────────
 const updateCanvasSize = () => {
   if (!canvasRef.value) return
-  canvasRef.value.width = window.innerWidth * window.devicePixelRatio
-  canvasRef.value.height = window.innerHeight * window.devicePixelRatio
+  // Size the buffer from the canvas's own layout box: on iOS Safari 100vh and
+  // window.innerHeight differ (collapsible toolbar), which stretched the image.
+  const rect = canvasRef.value.getBoundingClientRect()
+  canvasRef.value.width = rect.width * window.devicePixelRatio
+  canvasRef.value.height = rect.height * window.devicePixelRatio
 }
 
 const renderLoop = () => {
@@ -162,7 +209,7 @@ const stopRenderLoop = () => {
 </script>
 
 <template>
-  <div class="relative w-full h-screen bg-black flex flex-col items-center justify-center">
+  <div class="relative w-full h-dvh bg-black flex flex-col items-center justify-center">
     <!-- ── HOME ─────────────────────────────────────────────────────────────── -->
     <template v-if="status === 'idle'">
       <div class="absolute top-4 right-4 z-50">
@@ -244,7 +291,7 @@ const stopRenderLoop = () => {
       </UButton>
       <UButton
         class="cursor-pointer"
-        v-if="!isFullscreen"
+        v-if="canFullscreen && !isFullscreen"
         color="neutral"
         variant="solid"
         icon="i-heroicons-arrows-pointing-out"
@@ -254,7 +301,13 @@ const stopRenderLoop = () => {
       </UButton>
     </div>
 
-    <!-- Hidden video element used by WebRTC client -->
-    <video ref="videoRef" class="hidden" muted playsinline />
+    <!-- Source video for the canvas: must stay rendered (not display:none),
+         otherwise iOS Safari stops painting frames for drawImage -->
+    <video
+      ref="videoRef"
+      class="fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none"
+      muted
+      playsinline
+    />
   </div>
 </template>
