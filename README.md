@@ -1,110 +1,180 @@
-# Drone Streamer Portal FPV - Local Linux Test Setup
+# Drone Streamer Portal
 
-## 1. Prerequisites (Debian/Ubuntu/PiOS)
+Low-latency FPV video portal for a Raspberry Pi: capture a camera/HDMI feed,
+stream it to the browser over WebRTC, and watch it full-screen — including a
+split-screen **VR mode** for phone-in-headset viewing.
 
-Before running the Vue frontend, your environment needs the "Drone Streamer Portal" engine components (MediaMTX and v4l-utils) to simulate or capture a camera feed and stream it via WebRTC.
+---
+
+## 1. Purpose & technologies
+
+The portal turns a Raspberry Pi with a USB/CSI capture device into a self-contained
+FPV streaming appliance. You open its web page on a phone or laptop in the same
+network and get a near-real-time view of the camera, with a one-tap VR (dual-eye)
+mode and an installable PWA so it can run full-screen without browser chrome.
+
+A settings page lets you change the capture device, resolution, framerate and
+bitrate live, and a hardware page shows CPU/GPU temperature and load.
+
+**Stack**
+
+| Layer | Technology |
+| --- | --- |
+| Capture & streaming | [MediaMTX](https://github.com/bluenviron/mediamtx) (WebRTC / WHEP) fed by an `ffmpeg` V4L2 pipeline; `h264_v4l2m2m` hardware encoder on the Pi |
+| Frontend | Vue 3 + Vite + TypeScript, [Nuxt UI](https://ui.nuxt.com) 4, Tailwind 4; a canvas-based WebRTC renderer with normal + VR (split-screen) modes; installable PWA |
+| Backend | Python [FastAPI](https://fastapi.tiangolo.com) (uvicorn) — stream settings (edits `mediamtx.yml`) and hardware monitoring over WebSocket |
+| Web server | nginx (serves the built frontend, proxies WHEP/HLS to MediaMTX) |
+| Packaging & delivery | Debian `.deb` built in CI, published to a signed **apt repository on GitHub Pages**; `systemd` units + a stream watchdog |
+
+The whole appliance ships as **one Debian package** (frontend, backend, MediaMTX
+binary, nginx site, systemd units). A user-edited `mediamtx.yml` is preserved
+across updates.
+
+---
+
+## 2. Installation (Raspberry Pi)
+
+Requires a 64-bit Raspberry Pi OS (arm64). `apt` pulls in the system
+dependencies (nginx, ffmpeg, v4l-utils, python3-venv) automatically.
+
+### Recommended — apt repository
+
+Registers the signed apt repo, so **future updates are just
+`sudo apt update && sudo apt upgrade`**:
 
 ```bash
-# debian based
+curl -fsSL https://raw.githubusercontent.com/likt0r/drone-streamer-portal/main/scripts/install-pi.sh | sudo bash
+```
+
+This adds the signing key to `/usr/share/keyrings/`, writes
+`/etc/apt/sources.list.d/drone-streamer-portal.list`, and installs the package.
+
+### Offline / manual
+
+Grab the `drone-streamer-portal_<version>_arm64.deb` asset from the
+[latest release](https://github.com/likt0r/drone-streamer-portal/releases/latest)
+and install it directly (works without the apt repo):
+
+```bash
+sudo apt install ./drone-streamer-portal_<version>_arm64.deb
+# or, from a repo checkout:
+sudo bash scripts/install-pi.sh path/to/drone-streamer-portal_<version>_arm64.deb
+```
+
+### After installing
+
+The portal is reachable at `http://<pi-ip>/`. Useful checks:
+
+```bash
+sudo systemctl status mediamtx drone-stats nginx
+sudo systemctl status mediamtx-watchdog.timer
+```
+
+On a phone, open the page and use **Add to Home Screen** to install the PWA —
+VR mode then runs full-screen without browser chrome.
+
+---
+
+## 3. Dev setup
+
+You can run and develop the whole portal on a normal Linux laptop, without a Pi.
+
+### 3.1 Prerequisites
+
+```bash
+# Debian/Ubuntu
 sudo apt update && sudo apt install -y v4l-utils ffmpeg
-
-# fedora based
-sudo dnf update && sudo dnf install -y v4l-utils ffmpeg
+# Fedora
+sudo dnf install -y v4l-utils ffmpeg
 ```
 
-## 2. Locate Your Webcam
+[Bun](https://bun.sh) is used for the frontend; Python 3 for the backend.
 
-You don't need to simulate a framegrabber if you just want to use your laptop webcam. Most Linux laptops expose the webcam as `/dev/video0`. Wait to verify this by running:
+### 3.2 A video source for MediaMTX
+
+The frontend talks to MediaMTX over WebRTC at an `fpv` path. In dev, the Vite
+dev server proxies `/{stream}/whep` to a local MediaMTX on `:8889`
+(see `vite.config.ts`), so you just need MediaMTX serving an `fpv` stream.
+
+**Option A — a dummy test pattern (no camera needed):**
 
 ```bash
-v4l2-ctl --list-devices
+# MediaMTX with host networking (WebRTC :8889, RTSP :8554)
+docker run -d --name mediamtx-dev --network=host bluenviron/mediamtx
+
+# Publish a 1280x720 test pattern as the "fpv" stream
+ffmpeg -re -f lavfi -i "testsrc2=size=1280x720:rate=30" \
+  -c:v libx264 -preset ultrafast -tune zerolatency -profile:v baseline \
+  -pix_fmt yuv420p -b:v 2M -g 60 -an \
+  -f rtsp -rtsp_transport tcp rtsp://localhost:8554/fpv
 ```
 
-Identify the `Integrated Camera` and note its path (typically `/dev/video0`).
-
-## 3. Launch MediaMTX
-
-Download MediaMTX from [GitHub](https://github.com/bluenviron/mediamtx/releases).
-
-1. Extract the downloaded `mediamtx_linux_amd64.tar.gz`.
-2. Configure `mediamtx.yml` with the following:
+**Option B — your webcam.** Download MediaMTX from
+[GitHub](https://github.com/bluenviron/mediamtx/releases), then add an `fpv`
+path pointing at your camera (find it with `v4l2-ctl --list-devices`, usually
+`/dev/video0`):
 
 ```yaml
 paths:
   fpv:
-    # Use your laptop's integrated webcam:
     source: v4l2
     v4l2Device: /dev/video0
-    # Add width and height specific to your camera to avoid framerate drops, or leave commented
-    # v4l2Width: 1280
-    # v4l2Height: 720
 webrtc: yes
 webrtcAddress: :8889
-webrtcICEUDP: yes
 ```
 
-3. Run `./mediamtx`
+Run `./mediamtx`.
 
-## 4. Nuxt UI / Vue Development
-
-Start the frontend portal to view the stream.
+### 3.3 Frontend
 
 ```bash
 bun install
 bun run dev
 ```
 
-Navigate to `http://localhost:5173`. Ensure your browser allows auto-play for the local IP. When you click "Launch Drone Streamer Portal VR", the web app will connect to MediaMTX on `:8889` and render the incoming WebRTC feed onto a dual canvas for VR viewing.
+Open `http://localhost:5173` and click **Start Streaming** (or **Start VR Mode**).
+The app connects to MediaMTX through the Vite WHEP proxy and renders the feed.
 
-## 5. Backend API Development
-
-For the new Stream Settings or Hardware monitoring features, you'll need the Python FastAPI backend running locally alongside the frontend.
-
-1. Ensure Python 3 and pip are installed on your machine.
-2. Initialize and activate a virtual environment in the `backend/` directory:
+### 3.4 Backend (stream settings / hardware monitoring)
 
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate
-```
-
-3. Install the dependencies:
-
-```bash
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-```
-
-4. Start the backend DEV server on port 5002 using uvicorn:
-
-```bash
 uvicorn main:app --host 0.0.0.0 --port 5002 --reload
 ```
 
-The FastAPI backend logic (like the websocket history streaming and `/api/stream-settings` endpoints) will now be available for the Vue frontend locally!
+The `/api/stream-settings` and hardware-monitoring WebSocket endpoints are then
+available to the frontend.
 
-## 6. Dev mode on the Raspberry Pi
+### 3.5 Dev mode on a deployed Pi
 
-On the deployed Pi you can switch the whole portal between the production build and
-a live dev environment (Vite HMR + backend auto-reload) with one script. Both modes
-use port 80 and `:5002`, so they are mutually exclusive; the choice persists across
-reboots.
+On a Pi that already has the portal installed you can switch the live site
+between the production build and a hot-reloading dev environment with one script
+(both use port 80 + `:5002`, so they are mutually exclusive; the choice persists
+across reboots):
 
 ```bash
-# from the repo checkout on the Pi (run as your normal user, NOT root):
-scripts/dev-mode.sh dev      # nginx proxies / → Vite dev server (HMR); backend = uvicorn --reload from ./backend
-scripts/dev-mode.sh prod     # nginx serves the built dist/; backend = drone-stats
-scripts/dev-mode.sh status   # show the current mode
+# run as your normal user, NOT root:
+scripts/dev-mode.sh dev      # nginx → Vite dev server (HMR); backend = uvicorn --reload from ./backend
+scripts/dev-mode.sh prod     # nginx serves dist/; backend = drone-stats
+scripts/dev-mode.sh status
 ```
 
-In **dev** mode:
-- The Vite dev server runs as the `drone-dev-web` systemd service; nginx
-  (`nginx/dev-pi.conf`) reverse-proxies `/` to it, so HMR works over `http://<pi-ip>/`.
-- The backend runs as `drone-dev-api` (`uvicorn --reload`) directly from
-  `backend/main.py` in the repo, so backend edits hot-reload.
-- The MediaMTX streaming routes (`/{stream}/whep`, `/hls/`, `/webrtc/`) are identical
-  to prod, so the live stream keeps working.
+In **dev** mode the Vite dev server runs as the `drone-dev-web` systemd service
+and the backend as `drone-dev-api` (`uvicorn --reload`); the MediaMTX streaming
+routes are identical to prod, so the live stream keeps working.
 
-`dev-mode.sh dev` detects the active Node (e.g. Zed's bundled Node) and bakes its path
-into the `drone-dev-web` unit; after a Node version upgrade just run `dev-mode.sh dev`
-again to refresh it.
+### 3.6 Cutting a release
+
+Releases are automated with [release-it](https://github.com/release-it/release-it):
+
+```bash
+npm run release      # pick patch/minor/major
+```
+
+This bumps the version, commits, tags `vX.Y.Z` and pushes. The
+[Release workflow](.github/workflows/release.yml) then builds the `.deb`,
+publishes the GitHub release and updates the signed apt repository. The one-time
+signing-key / GitHub Pages setup is documented in
+[`apt-repo/README.md`](apt-repo/README.md).
