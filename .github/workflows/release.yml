@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write # needed to create GitHub Releases
 
+# Opt the JS actions into Node.js 24 (Node 20 runtime is being removed from the
+# runners). Avoids the deprecation warnings on actions/checkout, upload-artifact, etc.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build-and-release:
     name: Build & Publish Release

@@ -10,7 +10,7 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "format": "prettier --write --experimental-cli src/",
-    "release": "bash scripts/tag-release.sh"
+    "release": "release-it"
   },
   "dependencies": {
     "@iconify-icons/heroicons": "^1.2.9",
@@ -33,6 +33,7 @@
     "@vue/tsconfig": "^0.8.1",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.8.1",
+    "release-it": "^20.2.0",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-vue-devtools": "^8.0.6",
