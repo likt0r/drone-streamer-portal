@@ -3,60 +3,55 @@
 # install-pi.sh – Install/update drone-streamer-portal on a Raspberry Pi
 #
 # Usage:
-#   # Latest release from GitHub (no repo clone needed):
+#   # Register the apt repository and install (no repo clone needed):
 #   curl -fsSL https://raw.githubusercontent.com/likt0r/drone-streamer-portal/main/scripts/install-pi.sh | sudo bash
 #
-#   # Or from a checkout / with a locally built package:
-#   sudo bash scripts/install-pi.sh
+#   # Offline / manual: install a locally built .deb instead:
 #   sudo bash scripts/install-pi.sh path/to/drone-streamer-portal_x.y.z_arm64.deb
 #
-# Everything (frontend, backend, MediaMTX, nginx site, systemd units) ships in
-# one Debian package; apt resolves the system dependencies. Re-running this
-# script updates an existing installation in place. A user-edited
-# /opt/mediamtx/mediamtx.yml is preserved across updates.
+# Default path registers the signed apt repo on GitHub Pages, so future updates
+# are just `sudo apt update && sudo apt upgrade`. Everything (frontend, backend,
+# MediaMTX, nginx site, systemd units) ships in one Debian package; apt resolves
+# the system dependencies. A user-edited /opt/mediamtx/mediamtx.yml is preserved
+# across updates.
 # =============================================================================
 set -euo pipefail
 
 info()  { echo -e "\e[32m[INFO]\e[0m  $*"; }
 error() { echo -e "\e[31m[ERROR]\e[0m $*" >&2; exit 1; }
 
-REPO="likt0r/drone-streamer-portal"
-ARCH="arm64"
+PAGES_URL="https://likt0r.github.io/drone-streamer-portal"
+KEYRING="/usr/share/keyrings/drone-streamer-portal.gpg"
+SOURCES_LIST="/etc/apt/sources.list.d/drone-streamer-portal.list"
 
 [[ $EUID -ne 0 ]] && error "Please run as root: sudo bash $0"
 
 DEB="${1:-}"
 
-if [[ -z "${DEB}" ]]; then
-    info "Resolving latest release from github.com/${REPO}…"
-    LATEST_TAG=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
-        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\(.*\)".*/\1/')
-    [[ -n "${LATEST_TAG}" ]] || \
-        error "Could not resolve latest release tag. Check your internet connection."
+if [[ -n "${DEB}" ]]; then
+    # ── Offline / manual: install a local .deb directly ──────────────────────
+    [[ -f "${DEB}" ]] || error "Package not found: ${DEB}"
+    DEB="$(readlink -f "${DEB}")"
+    chmod 644 "${DEB}"  # _apt must be able to read it
+    info "Installing $(basename "${DEB}")…"
+    apt-get update -qq
+    apt-get install -y "${DEB}"
+else
+    # ── Default: register the apt repository, then install ───────────────────
+    info "Registering apt repository ${PAGES_URL}…"
+    curl -fsSL "${PAGES_URL}/public.key" | gpg --dearmor -o "${KEYRING}" \
+        || error "Failed to fetch the repository signing key from ${PAGES_URL}/public.key"
+    echo "deb [signed-by=${KEYRING}] ${PAGES_URL} stable main" > "${SOURCES_LIST}"
 
-    VERSION="${LATEST_TAG#v}"
-    ASSET="drone-streamer-portal_${VERSION}_${ARCH}.deb"
-    URL="https://github.com/${REPO}/releases/download/${LATEST_TAG}/${ASSET}"
-
-    TMP=$(mktemp -d)
-    trap 'rm -rf "${TMP}"' EXIT
-    DEB="${TMP}/${ASSET}"
-
-    info "Downloading ${ASSET}…"
-    curl -fsSL "${URL}" -o "${DEB}" || error "Failed to download ${URL}"
-    # apt downloads run as the _apt user, which must be able to read the file
-    chmod 644 "${DEB}"
+    info "Installing drone-streamer-portal…"
+    apt-get update -qq
+    apt-get install -y drone-streamer-portal
 fi
-
-[[ -f "${DEB}" ]] || error "Package not found: ${DEB}"
-DEB="$(readlink -f "${DEB}")"
-
-info "Installing $(basename "${DEB}")…"
-apt-get update -qq
-apt-get install -y "${DEB}"
 
 echo ""
 info "✅ Done!"
+echo ""
+echo "  Update later with:  sudo apt update && sudo apt upgrade"
 echo ""
 echo "  Service status:"
 echo "    sudo systemctl status mediamtx drone-stats nginx"

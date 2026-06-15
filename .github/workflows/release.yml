@@ -42,6 +42,13 @@ jobs:
           echo "DEB=build/drone-streamer-portal_${GITHUB_REF_NAME#v}_arm64.deb" >> "$GITHUB_ENV"
           echo "DEB_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
+      - name: Upload .deb for the apt-repo job
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: ${{ env.DEB }}
+          retention-days: 1
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -49,15 +56,17 @@ jobs:
           body: |
             ## drone-streamer-portal ${{ env.VERSION }}
 
-            ### Install / update on Raspberry Pi
+            One Debian package contains everything (frontend, backend, MediaMTX, nginx site, systemd units). A user-edited `mediamtx.yml` is preserved across updates.
 
-            One Debian package contains everything (frontend, backend, MediaMTX, nginx site, systemd units). Installing it again updates an existing installation in place; a user-edited `mediamtx.yml` is preserved.
+            ### Install on Raspberry Pi (recommended – apt repository)
+
+            Registers the signed apt repo so future updates are just `sudo apt update && sudo apt upgrade`:
 
             ```bash
             curl -fsSL https://raw.githubusercontent.com/likt0r/drone-streamer-portal/${{ env.VERSION }}/scripts/install-pi.sh | sudo bash
             ```
 
-            Or manually:
+            ### Offline / manual
 
             ```bash
             curl -fsSLO https://github.com/likt0r/drone-streamer-portal/releases/download/${{ env.VERSION }}/drone-streamer-portal_${{ env.DEB_VERSION }}_arm64.deb
@@ -69,3 +78,67 @@ jobs:
             ${{ env.ARCHIVE }}
             ${{ env.DEB }}
           fail_on_unmatched_files: true
+
+  publish-apt-repo:
+    name: Publish signed apt repository to GitHub Pages
+    needs: build-and-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Guard – require GPG_PRIVATE_KEY secret
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "${GPG_PRIVATE_KEY}" ]; then
+            echo "::warning::GPG_PRIVATE_KEY secret not set – skipping apt repo publish."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install reprepro
+        if: ${{ env.SKIP != '1' }}
+        run: sudo apt-get update -qq && sudo apt-get install -y reprepro
+
+      - name: Download built .deb
+        if: ${{ env.SKIP != '1' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: deb
+          path: incoming
+
+      - name: Import signing key
+        if: ${{ env.SKIP != '1' }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
+          FPR=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/{print $10; exit}')
+          echo "GPG_FPR=${FPR}" >> "$GITHUB_ENV"
+
+      - name: Check out existing gh-pages (accumulate older versions)
+        if: ${{ env.SKIP != '1' }}
+        run: |
+          git clone --depth 1 --branch gh-pages \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" repo \
+            || { mkdir repo; echo "gh-pages branch does not exist yet – starting fresh"; }
+          rm -rf repo/.git
+
+      - name: Generate repository metadata
+        if: ${{ env.SKIP != '1' }}
+        run: |
+          mkdir -p repo/conf
+          sed "s/__GPG_FINGERPRINT__/${GPG_FPR}/" apt-repo/conf/distributions > repo/conf/distributions
+          reprepro -b repo includedeb stable incoming/*.deb
+          # Publish the public key next to the repo so clients can trust it
+          gpg --armor --export "${GPG_FPR}" > repo/public.key
+
+      - name: Deploy to GitHub Pages
+        if: ${{ env.SKIP != '1' }}
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./repo
+          publish_branch: gh-pages
+          force_orphan: true
