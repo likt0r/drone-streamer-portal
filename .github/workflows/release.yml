@@ -117,10 +117,26 @@ jobs:
         if: ${{ env.SKIP != '1' }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
+          mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+          # Headless signing: reprepro signs the Release via gpgme/gpg-agent.
+          # Without this the agent tries to open a pinentry tty and fails with
+          # "Inappropriate ioctl for device". Loopback lets it take the
+          # passphrase from us instead.
+          printf 'allow-loopback-pinentry\ndefault-cache-ttl 7200\nmax-cache-ttl 7200\n' > ~/.gnupg/gpg-agent.conf
+          printf 'pinentry-mode loopback\n' > ~/.gnupg/gpg.conf
+          gpgconf --kill gpg-agent || true
           echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
           FPR=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/{print $10; exit}')
           echo "GPG_FPR=${FPR}" >> "$GITHUB_ENV"
+          # Passphrase-protected key: prime the agent cache so the later
+          # reprepro sign succeeds non-interactively. Passphrase-less keys need
+          # nothing here (the loopback config alone is enough).
+          if [ -n "${GPG_PASSPHRASE:-}" ]; then
+            echo priming | gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "${GPG_PASSPHRASE}" -u "${FPR}" --sign --output /dev/null
+          fi
 
       - name: Check out existing gh-pages (accumulate older versions)
         if: ${{ env.SKIP != '1' }}

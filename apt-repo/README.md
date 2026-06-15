@@ -13,10 +13,19 @@ always matches the key that signed `Release`. It is intentionally not committed.
 
 ## One-time setup (maintainer)
 
+Generate a signing key without a passphrase — simplest for CI, then only the
+`GPG_PRIVATE_KEY` secret is needed (the `--passphrase ''` makes it interactive-free):
+
 ```bash
-# Passphrase-less signing key (simplest for CI)
-gpg --batch --quick-generate-key "Drone Streamer Portal <bewr@pm.me>" rsa4096 sign never
-gpg --armor --export-secret-keys bewr@pm.me   # paste into the GPG_PRIVATE_KEY repo secret
+gpg --batch --pinentry-mode loopback --passphrase '' \
+    --quick-generate-key "Drone Streamer Portal <bewr@pm.me>" rsa4096 sign never
+gpg --armor --export-secret-keys bewr@pm.me | gh secret set GPG_PRIVATE_KEY
+```
+
+If your key **has a passphrase**, also add it as a secret so CI can sign headless:
+
+```bash
+gh secret set GPG_PASSPHRASE   # then type the passphrase
 ```
 
 Then enable GitHub Pages (Settings → Pages → Deploy from a branch → `gh-pages` / root).
