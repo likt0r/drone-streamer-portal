@@ -1,0 +1,38 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Origin: drone-streamer-portal
+Label: drone-streamer-portal
+Codename: stable
+Date: Tue, 07 Jul 2026 18:22:09 UTC
+Architectures: arm64
+Components: main
+Description: FPV drone streaming portal
+MD5Sum:
+ dbf9ead99dcb03bbe1fecadea89b5d1b 775 main/binary-arm64/Packages
+ 294e7f7b3fef687217e664deb058bad2 520 main/binary-arm64/Packages.gz
+ a5b4195386cd96db4e92f2739abee018 135 main/binary-arm64/Release
+SHA1:
+ 10feae92258589bb2d5ccbc56481d1627f03ec6c 775 main/binary-arm64/Packages
+ 55e24ac9f305e4687bcb2d2a4507b6c5521045bc 520 main/binary-arm64/Packages.gz
+ cda7554b729769680396cf63b1cea0eb940756f4 135 main/binary-arm64/Release
+SHA256:
+ b0a07d2c03c8b5643b519623fc46ce7b5e7eb02d35c4d950fc2b16f33c019ba3 775 main/binary-arm64/Packages
+ 57f73ce525aef03f31148430a08d0e6d2958bc6afc7c03947a75cbb9fa68d9a8 520 main/binary-arm64/Packages.gz
+ 75cee7e8a778b2ba7b9146c3e1e11f91aad2b5d9fe3a050d8903ddfe253b2d11 135 main/binary-arm64/Release
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEfFdOk8+wKSXCVOL1UMA2HlUIePEFAmpNQ9EACgkQUMA2HlUI
+ePGYmxAAr8JR37KHE2bX3KVYCykbK0KAytOIniqCBqy8MZuTexJSBveXZWUt0mAB
+pNun49ZZxgXg5x+LA/5Y7KOPp+M9N6VL7S+NXDKSjoC/PaB2YwuG66hjtKTk2cMP
+qkZtvVx7RXfO2ebDOMzAg7KlJ1dRrOKnHGfTx23HDq4p3WFavsfZXFsHUx94LWol
+WbAZdDRpKMoYT71z4r8/BVKqIEZqkMRXjS1Za8o3KC+gC1em3JZpOWuhCwTIM27c
+tEVjxnj2YUbNzJHhJtUmkZ6xdMPF2KCJOYbgk4QK0D1uobkVk/PwfNAQalcplp2y
+xyJhIuSP0fVKyS6IHGdKC4RwYoR1UB5wvyVy6Sn3j59Nt3D+OhFLsRbjSJsom+pc
+BH2g3QtM3Gu9Iqd8U4JHXzVRhRPagCj4Qr4ndAvMKL9q9e0pn2HMQNOHR3gW2f9a
+1zaqn1YY1S5q44XYBqFgL+/YZMChJsmXUTPdkI/xbABkVsoUBF4M88RgrEZD+ie1
+vGajrC142LAJo81kVXXaVO0p55/5pEfUvhLDvDKkvmNNJP0ee/iGb2G8qdiofCvb
+jjAP8IHpH7giP1GVoAcsHrIfBbXG7AV8yhEIwmnHGKDF54keojidRhKzBzJV5NCJ
+WJAy/+eeEu1XzoULePGyMJDouBQFJZ3OELyZp0uyg3pASb6EOak=
+=tI72
+-----END PGP SIGNATURE-----

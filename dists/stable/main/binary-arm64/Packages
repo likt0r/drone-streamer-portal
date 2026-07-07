@@ -1,0 +1,18 @@
+Package: drone-streamer-portal
+Version: 1.4.0
+Architecture: arm64
+Depends: nginx, ffmpeg, v4l-utils, python3, python3-venv, python3-pip, curl
+Maintainer: Benjamin Werner <bewr@pm.me>
+Priority: optional
+Section: video
+Filename: pool/main/d/drone-streamer-portal/drone-streamer-portal_1.4.0_arm64.deb
+Size: 23193350
+SHA256: 9650774b46367ae9c8e03f217a64175c76a6f9286dad28f1cf418ac9e999cb6a
+SHA1: 3ed2fb520755de7950207e4d78d6255e526121b5
+MD5sum: 6d1b6207201d284f1dd34c7e035d210f
+Description: FPV drone streaming portal (MediaMTX + FastAPI + Vue)
+ Web portal for low-latency FPV drone streaming on a Raspberry Pi:
+ MediaMTX (WebRTC/WHEP) fed by an ffmpeg V4L2 capture pipeline, a
+ FastAPI backend for stream settings and hardware monitoring, and a
+ Vue frontend served by nginx.
+

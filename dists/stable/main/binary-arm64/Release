@@ -1,0 +1,5 @@
+Component: main
+Origin: drone-streamer-portal
+Label: drone-streamer-portal
+Architecture: arm64
+Description: FPV drone streaming portal

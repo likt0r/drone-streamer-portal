@@ -1,0 +1,7 @@
+Origin: drone-streamer-portal
+Label: drone-streamer-portal
+Codename: stable
+Architectures: arm64
+Components: main
+Description: FPV drone streaming portal
+SignWith: 7C574E93CFB02925C254E2F550C0361E550878F1
