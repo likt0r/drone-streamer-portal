@@ -178,3 +178,68 @@ This bumps the version, commits, tags `vX.Y.Z` and pushes. The
 publishes the GitHub release and updates the signed apt repository. The one-time
 signing-key / GitHub Pages setup is documented in
 [`apt-repo/README.md`](apt-repo/README.md).
+
+---
+
+## 4. Fan control (optional hardware add-on)
+
+The Hardware Monitoring page can drive and monitor a small **case fan** wired to
+the Pi's GPIO. This is optional — with no fan wired up, everything degrades
+gracefully (the backend reports `fan_rpm = null` and the control is inactive).
+
+Reference build: a **3-pin Noctua NF-A4x10 5V** on a **Raspberry Pi 4**. A 3-pin
+fan has no PWM control wire, so speed is not steplessly adjustable — Noctua
+advises against PWM-ing the supply of a non-PWM fan (it also corrupts the tacho
+signal). Control is therefore a **thermostatic on/off switch with hysteresis**
+(same idea as the kernel `gpio-fan` overlay); the **RPM readout** works whenever
+the fan is powered. For stepless control, use the 4-pin *NF-A4x10 5V **PWM***
+variant instead.
+
+### Extra parts
+A GPIO can't drive the fan's ~50 mA directly (≈16 mA max), so a small low-side
+switch is needed:
+
+- 1× NPN transistor **`BC547`** (or `BC337` for more headroom)
+- 1× flyback diode **`1N4148`** (the fan is an inductive load)
+- 1× **1 kΩ** base resistor, optionally 1× **10 kΩ** base pull-down
+- 1× **1 kΩ** series resistor in the tacho line
+
+### Wiring (BCM numbering)
+
+![Fan wiring diagram](docs/fan-wiring.svg)
+
+Noctua 3-pin colours: **Yellow = +5 V**, **Black = GND**, **Green = tacho**
+*(verify at your connector)*. BC547 pinout (TO-92, flat side toward you, legs
+down): left→right = **C – B – E**.
+
+| Connection | From | To |
+| --- | --- | --- |
+| Supply | fan **Yellow** | Pi **5V** (pin 2 or 4) |
+| Fan ground (switched) | fan **Black** | BC547 **collector** |
+| Ground | BC547 **emitter** | Pi **GND** (pin 6) |
+| Control | Pi **GPIO17** (pin 11) → 1 kΩ | BC547 **base** |
+| Base pull-down (optional) | BC547 **base** → 10 kΩ | GND |
+| Flyback diode `1N4148` | anode = collector (fan black), cathode = +5 V | across the fan |
+| Tacho / RPM | fan **Green** → 1 kΩ | Pi **GPIO16** (pin 36) |
+
+**Safety notes**
+
+- **Never tie the tacho (green) straight to 5 V.** It's open-collector; run it on
+  the GPIO's internal **3.3 V pull-up**. The 1 kΩ series resistor protects the
+  GPIO if the fan's ground floats up while the fan is off (low-side switching).
+- The tacho only reads valid RPM **while the fan is running** (0 when off).
+- 2 tacho pulses per revolution → `RPM = pulses_per_second / 2 × 60`.
+- Pin GPIO17/GPIO16 are configurable in `backend/fan.py`.
+
+### Using it
+Open **Settings → Hardware Monitoring**. The **Fan** badge and *Fan Speed History*
+chart show live RPM. The **Fan Control** card switches between:
+
+- **Automatisch** — on above / off below the CPU-temperature thresholds you set
+  (defaults 60 °C on, 50 °C off).
+- **Manuell** — force the fan on or off.
+
+Settings are served by `GET/POST /api/fan-settings` and persisted in
+`backend/fan_settings.json`. GPIO access uses `gpiozero`/`lgpio` (pulled in by
+the backend `requirements.txt`); the backend already runs as root, so no extra
+overlay or reboot is required.

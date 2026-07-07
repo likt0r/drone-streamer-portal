@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" font-family="'DejaVu Sans','Segoe UI',Arial,sans-serif">
+  <!-- background -->
+  <rect x="0" y="0" width="1000" height="640" fill="#fbfbfd"/>
+  <rect x="0.5" y="0.5" width="999" height="639" fill="none" stroke="#d8dce3"/>
+
+  <!-- title -->
+  <text x="30" y="38" font-size="24" font-weight="700" fill="#1a1f2b">Lüfter-Verkabelung — Noctua NF-A4x10 5V (3-polig) am Raspberry Pi 4</text>
+  <text x="30" y="60" font-size="14" fill="#5b6472">Thermostatische An/Aus-Steuerung über BC547 (Low-Side) + Tacho-Auslesung. Werte: R1/R3 = 1&#8201;k&#937;, R2 = 10&#8201;k&#937; (optional).</text>
+
+  <!-- ============ rails ============ -->
+  <!-- +5V rail -->
+  <line x1="300" y1="120" x2="900" y2="120" stroke="#d92d20" stroke-width="3"/>
+  <text x="300" y="112" font-size="13" font-weight="700" fill="#d92d20">+5&#8201;V</text>
+  <!-- GND rail -->
+  <line x1="270" y1="520" x2="900" y2="520" stroke="#333" stroke-width="3"/>
+  <text x="270" y="540" font-size="13" font-weight="700" fill="#333">GND</text>
+
+  <!-- ============ Raspberry Pi header ============ -->
+  <rect x="30" y="150" width="180" height="330" rx="8" fill="#eef2f7" stroke="#334155" stroke-width="1.5"/>
+  <text x="45" y="175" font-size="15" font-weight="700" fill="#1a1f2b">Raspberry Pi 4</text>
+  <text x="45" y="193" font-size="12" fill="#5b6472">GPIO-Header (Ausschnitt)</text>
+
+  <!-- pins -->
+  <!-- Pin 2 · 5V -->
+  <text x="48" y="235" font-size="13" fill="#1a1f2b">Pin&#160;2&#160;·&#160;5V</text>
+  <rect x="198" y="224" width="12" height="12" fill="#d92d20"/>
+  <!-- Pin 6 · GND -->
+  <text x="48" y="295" font-size="13" fill="#1a1f2b">Pin&#160;6&#160;·&#160;GND</text>
+  <rect x="198" y="284" width="12" height="12" fill="#333"/>
+  <!-- Pin 11 · GPIO17 -->
+  <text x="48" y="355" font-size="13" fill="#1a1f2b">Pin&#160;11&#160;·&#160;GPIO17</text>
+  <rect x="198" y="344" width="12" height="12" fill="#2563eb"/>
+  <!-- Pin 36 · GPIO16 -->
+  <text x="48" y="415" font-size="13" fill="#1a1f2b">Pin&#160;36&#160;·&#160;GPIO16</text>
+  <rect x="198" y="404" width="12" height="12" fill="#1f9d55"/>
+
+  <!-- ============ wires ============ -->
+  <!-- Pin2 5V -> +5V rail -->
+  <polyline points="210,230 300,230 300,120" fill="none" stroke="#d92d20" stroke-width="2.5"/>
+  <!-- Pin6 GND -> GND rail -->
+  <polyline points="210,290 270,290 270,520" fill="none" stroke="#333" stroke-width="2.5"/>
+
+  <!-- Pin11 GPIO17 -> R1 -> base -->
+  <polyline points="210,350 360,350 360,370" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+  <line x1="360" y1="370" x2="370" y2="370" stroke="#2563eb" stroke-width="2.5"/>
+  <!-- R1 -->
+  <rect x="370" y="359" width="56" height="22" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="398" y="352" font-size="12" fill="#1a1f2b" text-anchor="middle">R1 1k&#937;</text>
+  <line x1="426" y1="370" x2="548" y2="370" stroke="#333" stroke-width="2.5"/>
+
+  <!-- R2 base pulldown to GND -->
+  <circle cx="470" cy="370" r="4" fill="#333"/>
+  <line x1="470" y1="370" x2="470" y2="430" stroke="#333" stroke-width="2.5"/>
+  <rect x="442" y="430" width="56" height="22" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="470" y="472" font-size="12" fill="#1a1f2b" text-anchor="middle">R2 10k&#937;</text>
+  <text x="470" y="486" font-size="11" fill="#5b6472" text-anchor="middle">(optional)</text>
+  <line x1="470" y1="452" x2="470" y2="520" stroke="#333" stroke-width="2.5"/>
+
+  <!-- ============ BC547 transistor ============ -->
+  <circle cx="560" cy="370" r="40" fill="#fff" stroke="#333" stroke-width="1.8"/>
+  <!-- base bar -->
+  <line x1="548" y1="346" x2="548" y2="394" stroke="#333" stroke-width="3"/>
+  <!-- collector lead -->
+  <line x1="548" y1="356" x2="590" y2="330" stroke="#333" stroke-width="2.5"/>
+  <line x1="590" y1="330" x2="590" y2="205" stroke="#333" stroke-width="2.5"/>
+  <!-- emitter lead (arrow pointing away from base = NPN) -->
+  <line x1="548" y1="384" x2="590" y2="410" stroke="#333" stroke-width="2.5"/>
+  <polygon points="590,410 575,404 581,394" fill="#333"/>
+  <line x1="590" y1="410" x2="590" y2="520" stroke="#333" stroke-width="2.5"/>
+  <!-- labels -->
+  <text x="596" y="322" font-size="12" font-weight="700" fill="#1a1f2b">C</text>
+  <text x="520" y="356" font-size="12" font-weight="700" fill="#1a1f2b">B</text>
+  <text x="596" y="420" font-size="12" font-weight="700" fill="#1a1f2b">E</text>
+  <text x="612" y="360" font-size="13" font-weight="700" fill="#1a1f2b">BC547</text>
+  <text x="612" y="375" font-size="10.5" fill="#5b6472">C&#8211;B&#8211;E</text>
+
+  <!-- collector / fan-black node -->
+  <circle cx="590" cy="205" r="4" fill="#333"/>
+  <!-- fan black wire (switched ground) -->
+  <line x1="590" y1="205" x2="812" y2="205" stroke="#333" stroke-width="2.5"/>
+  <text x="598" y="197" font-size="12" fill="#333">Schwarz (GND)</text>
+
+  <!-- emitter to GND node -->
+  <circle cx="590" cy="520" r="4" fill="#333"/>
+
+  <!-- ============ flyback diode 1N4148 ============ -->
+  <circle cx="700" cy="205" r="4" fill="#333"/>
+  <line x1="700" y1="205" x2="700" y2="120" stroke="#333" stroke-width="2.5"/>
+  <!-- diode triangle (anode bottom -> cathode top), bar near +5V -->
+  <polygon points="688,178 712,178 700,156" fill="#fff" stroke="#333" stroke-width="1.8"/>
+  <line x1="688" y1="152" x2="712" y2="152" stroke="#333" stroke-width="3"/>
+  <text x="670" y="146" font-size="12" fill="#1a1f2b" text-anchor="end">1N4148</text>
+  <text x="670" y="160" font-size="10.5" fill="#5b6472" text-anchor="end">Kathode → +5&#8201;V</text>
+  <circle cx="700" cy="120" r="4" fill="#d92d20"/>
+
+  <!-- ============ Fan ============ -->
+  <circle cx="862" cy="205" r="62" fill="#fff" stroke="#334155" stroke-width="2"/>
+  <circle cx="862" cy="205" r="15" fill="#eef2f7" stroke="#334155" stroke-width="1.5"/>
+  <path d="M862,205 q28,-34 40,-6 q-30,-4 -40,6 Z" fill="#f1f5f9" stroke="#94a3b8"/>
+  <path d="M862,205 q34,28 6,40 q4,-30 -6,-40 Z" fill="#f1f5f9" stroke="#94a3b8"/>
+  <path d="M862,205 q-28,34 -40,6 q30,4 40,-6 Z" fill="#f1f5f9" stroke="#94a3b8"/>
+  <path d="M862,205 q-34,-28 -6,-40 q-4,30 6,40 Z" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="862" y="298" font-size="13" font-weight="700" fill="#1a1f2b" text-anchor="middle">Noctua NF-A4x10 5V</text>
+  <text x="862" y="314" font-size="11.5" fill="#5b6472" text-anchor="middle">(3-polig)</text>
+
+  <!-- fan yellow lead -> +5V -->
+  <polyline points="815,160 815,120" fill="none" stroke="#c99700" stroke-width="2.5"/>
+  <text x="808" y="150" font-size="12" fill="#a97e00" text-anchor="end">Gelb (+5&#8201;V)</text>
+  <circle cx="815" cy="120" r="4" fill="#d92d20"/>
+
+  <!-- fan black lead already drawn to node (812,205) -->
+
+  <!-- fan green lead (tacho) -> R3 -> GPIO16 -->
+  <polyline points="815,250 930,250 930,570 694,570" fill="none" stroke="#1f9d55" stroke-width="2.5"/>
+  <rect x="640" y="559" width="54" height="22" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="667" y="596" font-size="12" fill="#1a1f2b" text-anchor="middle">R3 1k&#937;</text>
+  <polyline points="640,570 250,570 250,410 210,410" fill="none" stroke="#1f9d55" stroke-width="2.5"/>
+  <text x="300" y="562" font-size="12" fill="#12813f">Grün (Tacho)</text>
+
+  <!-- ============ legend / notes ============ -->
+  <rect x="30" y="500" width="360" height="118" rx="8" fill="#ffffff" stroke="#d8dce3"/>
+  <text x="45" y="522" font-size="13" font-weight="700" fill="#1a1f2b">Hinweise</text>
+  <text x="45" y="542" font-size="11.5" fill="#3a4351">• Tacho (grün) NIE direkt auf 5&#8201;V — interner 3,3&#8201;V-Pull-up</text>
+  <text x="57" y="557" font-size="11.5" fill="#3a4351">des GPIO + 1&#8201;k&#937; Schutz (R3). Open-Collector.</text>
+  <text x="45" y="574" font-size="11.5" fill="#3a4351">• RPM nur gültig, solange der Lüfter läuft (sonst 0).</text>
+  <text x="45" y="590" font-size="11.5" fill="#3a4351">• 2 Impulse/Umdrehung → RPM = Impulse/s ÷ 2 × 60.</text>
+  <text x="45" y="606" font-size="11.5" fill="#3a4351">• Kabelfarben am Stecker prüfen. Pins in backend/fan.py.</text>
+</svg>

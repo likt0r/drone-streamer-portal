@@ -1,3 +1,7 @@
 fastapi[standard]>=0.115.0
 psutil>=6.0.0
 websockets>=13.0
+# Fan control (3-pin Noctua on GPIO): thermostatic on/off + tachometer RPM.
+# Degrades gracefully off a Raspberry Pi (see backend/fan.py).
+gpiozero>=2.0
+lgpio>=0.2.2.0
