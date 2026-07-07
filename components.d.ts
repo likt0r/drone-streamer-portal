@@ -14,6 +14,7 @@ declare module 'vue' {
     HardwareMonitorTab: typeof import('./src/components/HardwareMonitorTab.vue')['default']
     InstallPrompt: typeof import('./src/components/InstallPrompt.vue')['default']
     MediaMtxSettingsTab: typeof import('./src/components/MediaMtxSettingsTab.vue')['default']
+    NetworkSettingsTab: typeof import('./src/components/NetworkSettingsTab.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsPage: typeof import('./src/components/SettingsPage.vue')['default']

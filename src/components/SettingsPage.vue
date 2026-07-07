@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const tabs = [
   { label: 'MediaMTX', icon: 'i-heroicons-cog-6-tooth', slot: 'mediamtx' },
+  { label: 'Network', icon: 'i-heroicons-wifi', slot: 'network' },
   { label: 'Hardware Monitoring', icon: 'i-heroicons-chart-bar', slot: 'monitoring' },
 ]
 </script>
@@ -22,6 +23,11 @@ const tabs = [
         <template #mediamtx>
           <div class="pt-6">
             <MediaMtxSettingsTab />
+          </div>
+        </template>
+        <template #network>
+          <div class="pt-6">
+            <NetworkSettingsTab />
           </div>
         </template>
         <template #monitoring>

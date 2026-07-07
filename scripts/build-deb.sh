@@ -74,6 +74,12 @@ mkdir -p "${PKG}/usr/share/drone-streamer-portal"
 install -m 644 "${PROJECT_DIR}/mediamtx/mediamtx.yml" \
     "${PKG}/usr/share/drone-streamer-portal/mediamtx.yml"
 
+# Hotspot hostname-resolution records (postinst installs them when NetworkManager
+# is present; the Network settings page manages them at runtime).
+mkdir -p "${PKG}/usr/share/drone-streamer-portal/dnsmasq-shared.d"
+install -m 644 "${PROJECT_DIR}"/scripts/dnsmasq-shared.d/*.conf \
+    "${PKG}/usr/share/drone-streamer-portal/dnsmasq-shared.d/"
+
 # ── nginx site ────────────────────────────────────────────────────────────────
 info "Adding nginx site…"
 mkdir -p "${PKG}/etc/nginx/sites-available"
