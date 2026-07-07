@@ -6,6 +6,8 @@ BACKEND_DIR=/opt/drone-streamer-backend
 MEDIAMTX_DIR=/opt/mediamtx
 CONFIG_TEMPLATE=/usr/share/drone-streamer-portal/mediamtx.yml
 NGINX_SITE=/etc/nginx/sites-available/drone-streamer-portal
+DNSMASQ_SHARED=/etc/NetworkManager/dnsmasq-shared.d
+DNSMASQ_TEMPLATES=/usr/share/drone-streamer-portal/dnsmasq-shared.d
 
 case "$1" in
     configure)
@@ -23,6 +25,19 @@ case "$1" in
         # rewrites it at runtime, so it is config, not a package file.
         if [ ! -f "$MEDIAMTX_DIR/mediamtx.yml" ]; then
             cp "$CONFIG_TEMPLATE" "$MEDIAMTX_DIR/mediamtx.yml"
+        fi
+
+        # Hotspot hostname resolution: install default dnsmasq records so devices
+        # on the Pi's WiFi AP can reach the portal by hostname (Android can't do
+        # mDNS/.local). Only when NetworkManager's dnsmasq-shared.d exists; the
+        # Network settings page manages these at runtime, so don't clobber
+        # records that already exist.
+        if [ -d "$DNSMASQ_SHARED" ]; then
+            for conf in "$DNSMASQ_TEMPLATES"/*.conf; do
+                [ -e "$conf" ] || continue
+                dest="$DNSMASQ_SHARED/$(basename "$conf")"
+                [ -e "$dest" ] || cp "$conf" "$dest"
+            done
         fi
 
         # Python venv for the FastAPI backend (needs internet on first install)
