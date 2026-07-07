@@ -7,6 +7,8 @@ import subprocess
 import time
 from typing import List
 
+import fan
+
 app = FastAPI()
 
 # Allow frontend to access REST endpoints if needed
@@ -76,12 +78,16 @@ def get_cpu_load() -> float:
 async def collect_stats():
     """Background task to continuously collect hardware stats every 1 second"""
     while True:
+        cpu_temp = get_cpu_temp()
+        # Run the fan control policy (thermostatic on/off) before sampling RPM.
+        fan.tick(cpu_temp)
         data = {
             "timestamp": int(time.time() * 1000), # JS expects ms
-            "cpu_temp": get_cpu_temp(),
+            "cpu_temp": cpu_temp,
             "gpu_temp": get_gpu_temp(),
             "cpu_load": get_cpu_load(),
             "gpu_load": get_gpu_load(),
+            "fan_rpm": fan.get_rpm(),
         }
         history.append(data)
         await manager.broadcast(data)
@@ -100,11 +106,19 @@ async def startup_event():
             "gpu_temp": 0,
             "cpu_load": 0,
             "gpu_load": 0,
+            "fan_rpm": 0,
         })
-    
+
     # Warmup psutil logic (first call returns 0.0)
     psutil.cpu_percent()
+    # Set up the fan GPIO (no-op / graceful fallback off a Raspberry Pi).
+    fan.init()
     asyncio.create_task(collect_stats())
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    fan.cleanup()
 
 @app.get("/api/stats/history")
 async def get_history():
@@ -122,9 +136,30 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 from pydantic import BaseModel
+from typing import Optional
 import json
 import os
 import re
+
+
+class FanSettings(BaseModel):
+    mode: Optional[str] = None          # "auto" | "manual"
+    manual_on: Optional[bool] = None    # used when mode == "manual"
+    temp_on: Optional[float] = None     # auto: turn ON at/above this CPU temp (°C)
+    temp_off: Optional[float] = None    # auto: turn OFF at/below this CPU temp (°C)
+
+
+@app.get("/api/fan-settings")
+async def get_fan_settings():
+    """Current fan mode/thresholds plus live state (on/off, rpm, gpio available)."""
+    return fan.get_settings()
+
+
+@app.post("/api/fan-settings")
+async def save_fan_settings(settings: FanSettings):
+    """Update fan mode / manual state / hysteresis thresholds."""
+    return fan.set_settings(settings.model_dump(exclude_none=True))
+
 
 SETTINGS_FILE = "stream_settings.json"
 
