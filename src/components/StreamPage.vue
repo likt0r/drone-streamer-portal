@@ -21,6 +21,9 @@ const mode = ref<Mode>('normal')
 const errorMsg = ref<string | null>(null)
 const isFullscreen = ref(false)
 
+// Track if user intentionally stopped the stream (vs. unexpected disconnect)
+const userStopped = ref(false)
+
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
@@ -96,6 +99,7 @@ const launch = async (selectedMode: Mode) => {
   mode.value = selectedMode
   status.value = 'connecting'
   errorMsg.value = null
+  userStopped.value = false
 
   await requestFullscreen()
 
@@ -116,12 +120,33 @@ const launch = async (selectedMode: Mode) => {
       renderLoop()
     },
     onDisconnect: () => {
-      status.value = 'idle'
+      if (!userStopped.value) {
+        // Unexpected disconnect - attempt to reconnect after a short delay
+        status.value = 'connecting'
+        setTimeout(() => {
+          if (!userStopped.value && status.value !== 'streaming') {
+            launch(mode.value)
+          }
+        }, 2000)
+      } else {
+        status.value = 'idle'
+      }
       stopRenderLoop()
     },
     onError: (err) => {
-      errorMsg.value = `Connection failed: ${err.message}`
-      status.value = 'error'
+      if (!userStopped.value) {
+        // Unexpected error - attempt to reconnect after a short delay
+        errorMsg.value = `Connection failed: ${err.message}. Reconnecting...`
+        status.value = 'connecting'
+        setTimeout(() => {
+          if (!userStopped.value && status.value !== 'streaming') {
+            launch(mode.value)
+          }
+        }, 2000)
+      } else {
+        errorMsg.value = `Connection failed: ${err.message}`
+        status.value = 'error'
+      }
       stopRenderLoop()
     },
   })
@@ -133,6 +158,7 @@ const launch = async (selectedMode: Mode) => {
 const handlePopState = () => stop()
 
 const stop = () => {
+  userStopped.value = true
   resizeObserver?.disconnect()
   resizeObserver = null
   window.removeEventListener('popstate', handlePopState)
